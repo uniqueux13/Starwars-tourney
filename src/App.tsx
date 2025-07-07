@@ -53,11 +53,11 @@ export default function App() {
         // =================================================================
         const firebaseConfig = {
             apiKey: "AIzaSyDE1D4zdxzb4UIqFjYpRBgrH41vN4MFBfA",
-            authDomain: "YOUR_AUTH_DOMAIN",
+            authDomain: "starwars-ii-tournament.firebaseapp.com",
             projectId: "starwars-ii-tournament",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            storageBucket: "starwars-ii-tournament.firebasestorage.app",
+            messagingSenderId: "203627704841",
+            appId: "1:203627704841:web:a53d31d25801dea7c07ed8"
         };
 
         // Initialize Firebase
