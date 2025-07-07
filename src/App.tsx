@@ -42,17 +42,14 @@ export default function App() {
 
   // --- FIREBASE SETUP ---
   useEffect(() => {
-    // =================================================================
-    // PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE
-    // You can get this from your Firebase project settings.
-    // =================================================================
+    // Read configuration from environment variables
     const firebaseConfig = {
-      apiKey: "AIzaSyDE1D4zdxzb4UIqFjYpRBgrH41vN4MFBfA",
-      authDomain: "starwars-ii-tournament.firebaseapp.com",
-      projectId: "starwars-ii-tournament",
-      storageBucket: "starwars-ii-tournament.firebasestorage.app",
-      messagingSenderId: "203627704841",
-      appId: "1:203627704841:web:a53d31d25801dea7c07ed8",
+        apiKey: process.env.REACT_APP_API_KEY,
+        authDomain: process.env.REACT_APP_AUTH_DOMAIN,
+        projectId: process.env.REACT_APP_PROJECT_ID,
+        storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
+        messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
+        appId: process.env.REACT_APP_APP_ID
     };
 
     // Initialize Firebase
