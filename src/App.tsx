@@ -6,11 +6,10 @@ import {
   getAuth,
   onAuthStateChanged,
   User,
-  signInAnonymously,
   GoogleAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 
 // Component Imports
 import Header from "./components/Header/Header";
@@ -23,8 +22,27 @@ import Login from "./components/Login/Login";
 import { Player, Match } from "./types";
 
 // --- STYLES ---
-// Using CSS Modules for component-specific styles
 import styles from "./app.module.css";
+
+// --- Firebase Config Validation ---
+// This configuration is now read from environment variables for security.
+const firebaseConfig = {
+    apiKey: process.env.REACT_APP_API_KEY,
+    authDomain: process.env.REACT_APP_AUTH_DOMAIN,
+    projectId: process.env.REACT_APP_PROJECT_ID,
+    storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
+    messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
+    appId: process.env.REACT_APP_APP_ID
+};
+
+// Check if all required Firebase config values are present.
+const isFirebaseConfigValid = 
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.storageBucket &&
+    firebaseConfig.messagingSenderId &&
+    firebaseConfig.appId;
 
 // --- MAIN APP COMPONENT ---
 export default function App() {
@@ -42,32 +60,25 @@ export default function App() {
 
   // --- FIREBASE SETUP ---
   useEffect(() => {
-    // Read configuration from environment variables
-    const firebaseConfig = {
-        apiKey: process.env.REACT_APP_API_KEY,
-        authDomain: process.env.REACT_APP_AUTH_DOMAIN,
-        projectId: process.env.REACT_APP_PROJECT_ID,
-        storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
-        messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
-        appId: process.env.REACT_APP_APP_ID
-    };
+    // Only initialize Firebase if the configuration is valid
+    if (isFirebaseConfigValid) {
+      const app = initializeApp(firebaseConfig);
+      const authInstance = getAuth(app);
+      const dbInstance = getFirestore(app);
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const authInstance = getAuth(app);
-    const dbInstance = getFirestore(app);
+      setAuth(authInstance);
+      setDb(dbInstance);
 
-    setAuth(authInstance);
-    setDb(dbInstance);
+      const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
+        setUser(currentUser);
+        setIsLoadingAuth(false);
+      });
 
-    // Listen for authentication state changes
-    const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
-      setUser(currentUser);
-      setIsLoadingAuth(false);
-    });
-
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } else {
+        // If config is invalid, stop loading and the component will render an error message.
+        setIsLoadingAuth(false);
+    }
   }, []);
 
   const handleLogin = async () => {
@@ -87,7 +98,6 @@ export default function App() {
   };
 
   // --- TOURNAMENT LOGIC ---
-  // This logic will be moved to a custom hook in a later step
   const handleAddPlayer = (name: string) => {
     if (isBracketGenerated) {
       alert(
@@ -228,6 +238,17 @@ export default function App() {
   // --- RENDER LOGIC ---
   if (isLoadingAuth) {
     return <div className={styles.loading}>Loading Transmission...</div>;
+  }
+  
+  // If Firebase config is missing, show an error message.
+  if (!isFirebaseConfigValid) {
+      return (
+          <div className={styles.errorContainer}>
+              <h1>Configuration Error</h1>
+              <p>Firebase configuration is missing or incomplete.</p>
+              <p>Please ensure your <code>.env</code> file is set up correctly for local development or that environment variables are set on your deployment server.</p>
+          </div>
+      )
   }
 
   return (
