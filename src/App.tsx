@@ -24,15 +24,16 @@ import { Player, Match } from "./types";
 // --- STYLES ---
 import styles from "./app.module.css";
 
-// --- Firebase Config Validation ---
-// This configuration is now read from environment variables for security.
+// --- Firebase Config Validation (Vite) ---
+// Vite exposes environment variables on the `import.meta.env` object.
+// The variables must be prefixed with VITE_ in your .env file.
 const firebaseConfig = {
-    apiKey: process.env.REACT_APP_API_KEY,
-    authDomain: process.env.REACT_APP_AUTH_DOMAIN,
-    projectId: process.env.REACT_APP_PROJECT_ID,
-    storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
-    messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
-    appId: process.env.REACT_APP_APP_ID
+    apiKey: import.meta.env.VITE_API_KEY,
+    authDomain: import.meta.env.VITE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_APP_ID
 };
 
 // Check if all required Firebase config values are present.
@@ -221,6 +222,7 @@ export default function App() {
       return;
     }
 
+    // FIX: Changed 'currentRound' to 'currentMatch.round' which is defined in this scope.
     const nextRound = currentMatch.round + 1;
     const nextMatchInRound = Math.floor(currentMatch.matchInRound / 2);
     const nextMatchIndex = nextMatches.findIndex(
@@ -246,7 +248,7 @@ export default function App() {
           <div className={styles.errorContainer}>
               <h1>Configuration Error</h1>
               <p>Firebase configuration is missing or incomplete.</p>
-              <p>Please ensure your <code>.env</code> file is set up correctly for local development or that environment variables are set on your deployment server.</p>
+              <p>Please ensure your <code>.env</code> file is set up correctly with the <code>VITE_</code> prefix for local development, or that environment variables are set on your deployment server.</p>
           </div>
       )
   }
