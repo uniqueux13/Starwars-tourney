@@ -1,0 +1,43 @@
+/* src/App.module.css */
+.app {
+  font-family: 'Exo 2', sans-serif;
+  background-color: #0a0a12;
+  color: #c0c0ff;
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-size: 1.5rem;
+    color: #feda4a;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.resetContainer {
+    margin-bottom: 20px;
+}
+
+.button {
+    font-family: 'Orbitron', sans-serif;
+    background-color: #3a3a6a;
+    color: #e0e0ff;
+    border: 1px solid #6a6aff;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 0 5px rgba(170, 170, 255, 0.3);
+}
+
+.button:hover {
+    filter: brightness(1.2);
+}

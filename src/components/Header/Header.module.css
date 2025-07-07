@@ -1,0 +1,52 @@
+/* src/components/Header/Header.module.css */
+.header {
+    width: 100%;
+    max-width: 1200px;
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #4a4a88;
+    padding-bottom: 20px;
+    position: relative;
+}
+
+.mainTitle {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #feda4a;
+    text-shadow: 0 0 5px #feda4a, 0 0 10px #feda4a;
+    margin: 0 0 10px 0;
+    letter-spacing: 2px;
+}
+
+.subTitle {
+    font-size: 1.2rem;
+    color: #9a9ae0;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+}
+
+.userInfo {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #9a9ae0;
+}
+
+.logoutButton {
+    font-family: 'Orbitron', sans-serif;
+    background: none;
+    border: 1px solid #ff4a4a;
+    color: #ff4a4a;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.logoutButton:hover {
+    background-color: #ff4a4a;
+    color: #0a0a12;
+}

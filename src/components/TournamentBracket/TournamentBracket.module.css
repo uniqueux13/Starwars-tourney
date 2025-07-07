@@ -1,0 +1,29 @@
+/* src/components/TournamentBracket/TournamentBracket.module.css */
+.bracketContainer {
+  width: 100%;
+  overflow-x: auto;
+  padding: 20px 0;
+}
+
+.bracket {
+  display: flex;
+  align-items: stretch;
+  gap: 50px;
+  padding: 20px;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 30px;
+  min-width: 250px;
+}
+
+.roundTitle {
+  text-align: center;
+  color: #feda4a;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}

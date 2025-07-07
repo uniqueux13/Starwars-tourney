@@ -1,0 +1,80 @@
+/* src/components/WinnerDisplay/WinnerDisplay.module.css */
+.winnerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(10, 10, 18, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.winnerModal {
+  background-color: #1a1a2e;
+  padding: 40px;
+  border-radius: 10px;
+  border: 2px solid #feda4a;
+  box-shadow: 0 0 25px #feda4a, inset 0 0 15px rgba(254, 218, 74, 0.5);
+  text-align: center;
+  animation: scaleIn 0.5s 0.2s ease-in-out backwards;
+}
+
+.victoryTitle {
+  font-size: 4rem;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  color: #feda4a;
+  text-shadow: 0 0 10px #feda4a, 0 0 20px #feda4a;
+  margin: 0 0 10px 0;
+  text-transform: uppercase;
+}
+
+.winnerName {
+  font-size: 2rem;
+  color: #e0e0ff;
+  margin: 0 0 30px 0;
+}
+
+.closeButton {
+  font-family: 'Orbitron', sans-serif;
+  background-color: #feda4a;
+  color: #0a0a12;
+  font-weight: bold;
+  border: 1px solid #ffff8d;
+  box-shadow: 0 0 10px #feda4a;
+  padding: 12px 25px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.closeButton:hover {
+    filter: brightness(1.2);
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
