@@ -1,0 +1,15 @@
+# This is the configuration file for Netlify.
+
+# The 'build' command is likely already in your package.json, 
+# but this ensures Netlify knows what to run.
+[build]
+  command = "npm run build"
+  publish = "dist" # For Vite projects, the output folder is 'dist'
+
+# This is the crucial part for Single-Page Applications.
+# It redirects all paths to the root index.html file,
+# allowing React to handle routing.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
