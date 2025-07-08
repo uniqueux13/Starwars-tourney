@@ -9,7 +9,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getFirestore, Firestore, doc, getDoc } from "firebase/firestore";
 
 // Component Imports
 import Header from "./components/Header/Header";
@@ -19,10 +19,11 @@ import Login from "./components/Login/Login";
 import ProfileSetup from "./components/ProfileSetup/ProfileSetup";
 import Dashboard from "./components/Dashboard/Dashboard";
 import TournamentManagement from "./components/TournamentManagement/TournamentManagement";
+import ProfilePage from "./components/ProfilePage/ProfilePage";
 
 // Hook Imports
 import { useInviteHandler } from "./hooks/useInviteHandler";
-import { useUserProfile } from "./hooks/useUserProfile";
+import { useUserProfile, UserProfile } from "./hooks/useUserProfile";
 
 // --- STYLES ---
 import styles from "./app.module.css";
@@ -52,6 +53,9 @@ export default function App() {
   const [db, setDb] = useState<Firestore | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+
+  // View-management state
+  const [viewingProfile, setViewingProfile] = useState<UserProfile | null>(null);
 
   // Custom Hooks
   const { userProfile, isLoadingProfile, createUserProfile } = useUserProfile(user, db);
@@ -114,6 +118,22 @@ export default function App() {
     }
   };
 
+  // --- Navigation Logic ---
+  const handleViewProfile = async (profileId: string) => {
+    if (!db) return;
+    const profileDocRef = doc(db, 'users', profileId);
+    const profileDocSnap = await getDoc(profileDocRef);
+    if (profileDocSnap.exists()) {
+      setViewingProfile(profileDocSnap.data() as UserProfile);
+    } else {
+      alert("Could not find this user's profile.");
+    }
+  };
+
+  const handleBackToDashboard = () => {
+    setViewingProfile(null);
+  };
+
   // --- RENDER LOGIC ---
   const isLoading = isLoadingAuth || isLoadingProfile || isLoadingTournament;
 
@@ -130,6 +150,10 @@ export default function App() {
       return <ProfileSetup onCreateProfile={createUserProfile} />;
     }
 
+    if (viewingProfile) {
+      return <ProfilePage profile={viewingProfile} onBack={handleBackToDashboard} />;
+    }
+
     if (activeTournament) {
       const isOrganizer = activeTournament.organizerId === user.uid;
 
@@ -143,6 +167,7 @@ export default function App() {
             onKickPlayer={kickPlayer}
             onGenerateInvite={generateInviteLink}
             onSaveSettings={saveTournamentSettings}
+            onViewProfile={handleViewProfile}
             isStarting={isStarting}
             isDeleting={isDeleting}
             isKickingPlayerId={isKickingPlayerId}
@@ -181,6 +206,7 @@ export default function App() {
         manageTournament={manageTournament}
         createTournament={createTournament}
         leaveTournament={leaveTournament}
+        onViewProfile={handleViewProfile}
       />
     );
   };
@@ -197,7 +223,7 @@ export default function App() {
 
   return (
     <div className={styles.app}>
-      <Header user={user} userProfile={userProfile} onLogout={handleLogout} />
+      <Header user={user} userProfile={userProfile} onViewProfile={handleViewProfile} onLogout={handleLogout} />
       <div className={styles.content}>
         {renderContent()}
       </div>

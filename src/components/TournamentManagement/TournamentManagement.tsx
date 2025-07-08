@@ -14,6 +14,7 @@ interface TournamentManagementProps {
   onKickPlayer: (playerToKick: Player) => Promise<void>;
   onGenerateInvite: () => Promise<string | null>;
   onSaveSettings: (settings: TournamentRules) => Promise<void>;
+  onViewProfile: (profileId: string) => void; // Add the new prop
   isStarting: boolean;
   isDeleting: boolean;
   isKickingPlayerId: string | null;
@@ -28,6 +29,7 @@ const TournamentManagement: React.FC<TournamentManagementProps> = ({
   onKickPlayer,
   onGenerateInvite,
   onSaveSettings,
+  onViewProfile, // Destructure the new prop
   isStarting,
   isDeleting,
   isKickingPlayerId,
@@ -68,7 +70,6 @@ const TournamentManagement: React.FC<TournamentManagementProps> = ({
         <p className={styles.subtitle}>Tournament Control Panel</p>
       </div>
 
-      {/* Tab Navigation */}
       <div className={styles.navTabs}>
         <button 
           onClick={() => setView('roster')}
@@ -84,7 +85,6 @@ const TournamentManagement: React.FC<TournamentManagementProps> = ({
         </button>
       </div>
 
-      {/* Conditional Content based on selected view */}
       {view === 'roster' && (
         <div className={styles.contentSection}>
             <div className={styles.inviteSection}>
@@ -110,7 +110,10 @@ const TournamentManagement: React.FC<TournamentManagementProps> = ({
                 <ul className={styles.playerList}>
                     {tournament.players.map((player: Player) => (
                     <li key={player.id} className={styles.playerTag}>
-                        <span>{player.name}</span>
+                        {/* Make the player name a clickable button */}
+                        <button className={styles.playerNameButton} onClick={() => onViewProfile(player.id)}>
+                            {player.name}
+                        </button>
                         {player.id !== currentUser.uid && (
                             <button 
                                 className={styles.kickButton}

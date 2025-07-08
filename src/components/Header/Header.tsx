@@ -6,20 +6,26 @@ import styles from './Header.module.css';
 
 interface HeaderProps {
   user: User | null;
-  userProfile: UserProfile | null; // Add the new prop here
+  userProfile: UserProfile | null;
+  onViewProfile: (profileId: string) => void; // Add the new prop here
   onLogout: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ user, userProfile, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ user, userProfile, onViewProfile, onLogout }) => {
   // Determine the best name to display
   const displayName = userProfile?.username || user?.displayName || 'Pilot';
 
   return (
     <header className={styles.header}>
       <div className={styles.userInfo}>
-        {user && (
+        {user && userProfile && (
           <>
-            <span className={styles.welcomeText}>Welcome, <span className={styles.displayName}>{displayName}</span></span>
+            <span className={styles.welcomeText}>
+              Welcome, 
+              <button onClick={() => onViewProfile(userProfile.uid)} className={styles.displayNameButton}>
+                {displayName}
+              </button>
+            </span>
             <button onClick={onLogout} className={styles.logoutButton}>Logout</button>
           </>
         )}

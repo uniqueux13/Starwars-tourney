@@ -3,13 +3,15 @@ import React, { useState } from 'react';
 import styles from './TournamentList.module.css';
 import { Tournament } from '../../hooks/useTournament';
 import { User } from 'firebase/auth';
-import TournamentDetailsModal from '../TournamentDetailsModal/TournamentDetailsModal'; // Import the new modal
+import TournamentDetailsModal from '../TournamentDetailsModal/TournamentDetailsModal';
+import RosterModal from '../RosterModal/RosterModal'; // Import the new RosterModal
 
 interface TournamentListProps {
   tournaments: Tournament[];
   currentUser: User;
   onJoinTournament: (tournamentId: string) => Promise<void>;
   onManageTournament: (tournamentId: string) => Promise<void>;
+  onViewProfile: (profileId: string) => void; // Add onViewProfile prop
   isJoining: string | null;
 }
 
@@ -17,10 +19,12 @@ const TournamentList: React.FC<TournamentListProps> = ({
   tournaments, 
   currentUser, 
   onJoinTournament, 
-  onManageTournament, 
+  onManageTournament,
+  onViewProfile, // Destructure the new prop
   isJoining 
 }) => {
-  const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+  const [viewingDetails, setViewingDetails] = useState<Tournament | null>(null);
+  const [viewingRoster, setViewingRoster] = useState<Tournament | null>(null);
 
   if (tournaments.length === 0) {
     return (
@@ -33,11 +37,18 @@ const TournamentList: React.FC<TournamentListProps> = ({
 
   return (
     <>
-      {/* Conditionally render the modal when a tournament is selected */}
-      {selectedTournament && (
+      {/* Conditionally render the modals */}
+      {viewingDetails && (
         <TournamentDetailsModal 
-          tournament={selectedTournament} 
-          onClose={() => setSelectedTournament(null)} 
+          tournament={viewingDetails} 
+          onClose={() => setViewingDetails(null)} 
+        />
+      )}
+      {viewingRoster && (
+        <RosterModal
+          tournament={viewingRoster}
+          onClose={() => setViewingRoster(null)}
+          onViewProfile={onViewProfile}
         />
       )}
 
@@ -51,13 +62,16 @@ const TournamentList: React.FC<TournamentListProps> = ({
               <div className={styles.cardHeader}>
                 <h3 className={styles.tournamentName}>{tournament.name}</h3>
                 <span className={styles.organizer}>
-                  Organized by: {tournament.organizerUsername}
+                  Organized by: <button className={styles.organizerButton} onClick={() => onViewProfile(tournament.organizerId)}>{tournament.organizerUsername}</button>
                 </span>
               </div>
               <div className={styles.cardBody}>
                 <div className={styles.detail}>
                   <span className={styles.detailLabel}>Players</span>
-                  <span className={styles.detailValue}>{tournament.players.length}</span>
+                  {/* Make the player count a clickable button to view the roster */}
+                  <button className={styles.rosterButton} onClick={() => setViewingRoster(tournament)}>
+                    {tournament.players.length}
+                  </button>
                 </div>
                 <div className={styles.detail}>
                     <span className={styles.detailLabel}>Schedule</span>
@@ -66,7 +80,7 @@ const TournamentList: React.FC<TournamentListProps> = ({
               </div>
               <div className={styles.cardFooter}>
                 <button 
-                  onClick={() => setSelectedTournament(tournament)}
+                  onClick={() => setViewingDetails(tournament)}
                   className={styles.detailsButton}
                 >
                   View Details

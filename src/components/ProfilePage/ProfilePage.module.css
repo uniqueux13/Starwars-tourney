@@ -1,0 +1,80 @@
+/* src/components/ProfilePage/ProfilePage.module.css */
+.profileContainer {
+  width: 100%;
+  max-width: 800px;
+  background-color: #1a1a2e;
+  border: 1px solid #3a3a6a;
+  border-radius: 8px;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  animation: fadeInContent 0.5s ease;
+}
+
+@keyframes fadeInContent {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.backButton {
+    align-self: flex-start;
+    background: none;
+    border: 1px solid #4a4a88;
+    color: #9a9ae0;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.backButton:hover {
+    background-color: #2a2a4e;
+    color: #e0e0ff;
+}
+
+.profileHeader {
+  text-align: center;
+  border-bottom: 1px solid #3a3a6a;
+  padding-bottom: 20px;
+}
+
+.username {
+  color: #feda4a;
+  font-size: 2.5rem;
+  margin: 0;
+}
+
+.joinedDate {
+  color: #9a9ae0;
+  margin: 5px 0 0 0;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+}
+
+.statCard {
+  background-color: #2a2a4e;
+  padding: 20px;
+  border-radius: 6px;
+  text-align: center;
+  border: 1px solid #4a4a88;
+}
+
+.statCard h4 {
+  margin: 0 0 10px 0;
+  color: #9a9ae0;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+.statCard p {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #e0e0ff;
+}

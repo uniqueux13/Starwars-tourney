@@ -15,6 +15,7 @@ interface DashboardProps {
   manageTournament: (tournamentId: string) => Promise<void>;
   createTournament: (tournamentName: string) => Promise<void>;
   leaveTournament: () => Promise<void>;
+  onViewProfile: (profileId: string) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -27,6 +28,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   manageTournament,
   createTournament,
   leaveTournament,
+  onViewProfile,
 }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [tournamentName, setTournamentName] = useState('');
@@ -51,7 +53,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     <div className={styles.dashboardContainer}>
       <h2 className={styles.welcomeTitle}>Welcome, {username}</h2>
 
-      {/* Section for the user's current tournament */}
       {activeTournament ? (
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>My Current Tournament</h3>
@@ -75,7 +76,6 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       ) : (
-        // Button to create a new tournament, only shown if not in one
         <div className={styles.createContainer}>
            <button
              onClick={() => setShowCreateForm(!showCreateForm)}
@@ -103,7 +103,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      {/* Section for the public list of open tournaments */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>Open Tournaments</h3>
         <TournamentList
@@ -111,6 +110,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           currentUser={currentUser}
           onJoinTournament={joinTournament}
           onManageTournament={manageTournament}
+          onViewProfile={onViewProfile}
           isJoining={isJoining}
         />
       </div>
