@@ -1,0 +1,35 @@
+/* src/components/Navbar/Navbar.module.css */
+.navbar {
+  width: 100%;
+  max-width: 900px;
+  padding: 10px 20px;
+  background-color: #1a1a2e;
+  border-radius: 8px;
+  border: 1px solid #3a3a6a;
+  box-sizing: border-box;
+  margin-bottom: 30px;
+}
+
+.navLinks {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.navButton {
+  font-family: 'Orbitron', sans-serif;
+  background: none;
+  border: none;
+  color: #9a9ae0;
+  padding: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: color 0.3s ease;
+}
+
+.navButton:hover {
+  color: #feda4a;
+}

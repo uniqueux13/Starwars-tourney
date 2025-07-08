@@ -1,21 +1,74 @@
 // src/components/Login/Login.tsx
-import React from 'react';
-import styles from './Login.module.css'
+import React, { useState } from 'react';
+import styles from './Login.module.css';
 
 interface LoginProps {
-    onLogin: () => void;
+  onGoogleLogin: () => void;
+  onEmailLogin: (email: string, password: string) => Promise<void>;
+  onEmailSignUp: (email: string, password: string) => Promise<void>;
+  authError: string | null;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
-    return (
-        <div className={styles.loginContainer}>
-            <h2 className={styles.title}>Authentication Required</h2>
-            <p className={styles.subtitle}>Please log in to access the Tournament Hub.</p>
-            <button onClick={onLogin} className={styles.loginButton}>
-                Sign In with Google
-            </button>
-        </div>
-    );
+const Login: React.FC<LoginProps> = ({ onGoogleLogin, onEmailLogin, onEmailSignUp, authError }) => {
+  const [isLoginView, setIsLoginView] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    if (isLoginView) {
+      await onEmailLogin(email, password);
+    } else {
+      await onEmailSignUp(email, password);
+    }
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className={styles.loginContainer}>
+      <h2 className={styles.title}>{isLoginView ? 'Login' : 'Create Account'}</h2>
+      
+      {/* Email/Password Form */}
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email Address"
+          className={styles.input}
+          required
+        />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          className={styles.input}
+          required
+        />
+        {authError && <p className={styles.errorText}>{authError}</p>}
+        <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
+          {isSubmitting ? 'Submitting...' : (isLoginView ? 'Login' : 'Sign Up')}
+        </button>
+      </form>
+
+      {/* Toggle between Login and Sign Up */}
+      <button onClick={() => setIsLoginView(!isLoginView)} className={styles.toggleButton}>
+        {isLoginView ? 'Need an account? Sign Up' : 'Already have an account? Login'}
+      </button>
+
+      <div className={styles.divider}>
+        <span>OR</span>
+      </div>
+
+      {/* Google Sign-In Button */}
+      <button onClick={onGoogleLogin} className={styles.googleButton}>
+        Google Sign In
+      </button>
+    </div>
+  );
 };
 
 export default Login;

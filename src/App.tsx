@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 
 // Firebase Imports
 import { initializeApp } from "firebase/app";
@@ -8,18 +8,26 @@ import {
   User,
   GoogleAuthProvider,
   signInWithPopup,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  AuthError
 } from "firebase/auth";
 import { getFirestore, Firestore, doc, getDoc } from "firebase/firestore";
 
 // Component Imports
 import Header from "./components/Header/Header";
-import TournamentBracket from "./components/TournamentBracket/TournamentBracket";
-import WinnerDisplay from "./components/WinnerDisplay/WinnerDisplay";
+import Navbar from "./components/Navbar/Navbar";
 import Login from "./components/Login/Login";
 import ProfileSetup from "./components/ProfileSetup/ProfileSetup";
 import Dashboard from "./components/Dashboard/Dashboard";
-import TournamentManagement from "./components/TournamentManagement/TournamentManagement";
-import ProfilePage from "./components/ProfilePage/ProfilePage";
+
+// --- LAZY-LOADED COMPONENTS ---
+// These components will be code-split into separate chunks and loaded on demand.
+const TournamentBracket = React.lazy(() => import("./components/TournamentBracket/TournamentBracket"));
+const WinnerDisplay = React.lazy(() => import("./components/WinnerDisplay/WinnerDisplay"));
+const TournamentManagement = React.lazy(() => import("./components/TournamentManagement/TournamentManagement"));
+const ProfilePage = React.lazy(() => import("./components/ProfilePage/ProfilePage"));
+
 
 // Hook Imports
 import { useInviteHandler } from "./hooks/useInviteHandler";
@@ -46,6 +54,8 @@ const isFirebaseConfigValid =
     firebaseConfig.messagingSenderId &&
     firebaseConfig.appId;
 
+type AppView = 'dashboard' | 'profile' | 'tournament';
+
 // --- MAIN APP COMPONENT ---
 export default function App() {
   // Firebase State
@@ -53,9 +63,12 @@ export default function App() {
   const [db, setDb] = useState<Firestore | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // View-management state
-  const [viewingProfile, setViewingProfile] = useState<UserProfile | null>(null);
+  const [currentView, setCurrentView] = useState<AppView>('dashboard');
+  const [viewedProfile, setViewedProfile] = useState<UserProfile | null>(null);
+
 
   // Custom Hooks
   const { userProfile, isLoadingProfile, createUserProfile } = useUserProfile(user, db);
@@ -92,6 +105,7 @@ export default function App() {
 
       const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
         setUser(currentUser);
+        setAuthError(null);
         setIsLoadingAuth(false);
       });
 
@@ -101,13 +115,38 @@ export default function App() {
     }
   }, []);
 
+  // --- AUTHENTICATION HANDLERS ---
   const handleLogin = async () => {
     if (!auth) return;
+    setAuthError(null);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
     } catch (error) {
-      console.error("Error during sign-in:", error);
+      console.error("Error during Google sign-in:", error);
+      setAuthError((error as AuthError).message);
+    }
+  };
+
+  const handleEmailLogin = async (email: string, password: string) => {
+    if (!auth) return;
+    setAuthError(null);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error("Error during email sign-in:", error);
+      setAuthError((error as AuthError).message);
+    }
+  };
+
+  const handleEmailSignUp = async (email: string, password: string) => {
+    if (!auth) return;
+    setAuthError(null);
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error("Error during email sign-up:", error);
+      setAuthError((error as AuthError).message);
     }
   };
 
@@ -119,19 +158,20 @@ export default function App() {
   };
 
   // --- Navigation Logic ---
-  const handleViewProfile = async (profileId: string) => {
-    if (!db) return;
-    const profileDocRef = doc(db, 'users', profileId);
-    const profileDocSnap = await getDoc(profileDocRef);
-    if (profileDocSnap.exists()) {
-      setViewingProfile(profileDocSnap.data() as UserProfile);
+  const handleNavigate = async (view: AppView, profileId?: string) => {
+    if (view === 'profile' && profileId) {
+        if (!db) return;
+        const profileDocRef = doc(db, 'users', profileId);
+        const profileDocSnap = await getDoc(profileDocRef);
+        if (profileDocSnap.exists()) {
+            setViewedProfile(profileDocSnap.data() as UserProfile);
+            setCurrentView('profile');
+        } else {
+            alert("Could not find this user's profile.");
+        }
     } else {
-      alert("Could not find this user's profile.");
+        setCurrentView(view);
     }
-  };
-
-  const handleBackToDashboard = () => {
-    setViewingProfile(null);
   };
 
   // --- RENDER LOGIC ---
@@ -143,15 +183,22 @@ export default function App() {
     }
 
     if (!user) {
-      return <Login onLogin={handleLogin} />;
+      return (
+        <Login 
+          onGoogleLogin={handleLogin}
+          onEmailLogin={handleEmailLogin}
+          onEmailSignUp={handleEmailSignUp}
+          authError={authError}
+        />
+      );
     }
 
     if (!userProfile) {
       return <ProfileSetup onCreateProfile={createUserProfile} />;
     }
 
-    if (viewingProfile) {
-      return <ProfilePage profile={viewingProfile} onBack={handleBackToDashboard} />;
+    if (currentView === 'profile' && viewedProfile) {
+        return <ProfilePage profile={viewedProfile} onBack={() => setCurrentView('dashboard')} />;
     }
 
     if (activeTournament) {
@@ -167,7 +214,7 @@ export default function App() {
             onKickPlayer={kickPlayer}
             onGenerateInvite={generateInviteLink}
             onSaveSettings={saveTournamentSettings}
-            onViewProfile={handleViewProfile}
+            onViewProfile={(id) => handleNavigate('profile', id)}
             isStarting={isStarting}
             isDeleting={isDeleting}
             isKickingPlayerId={isKickingPlayerId}
@@ -195,6 +242,7 @@ export default function App() {
       );
     }
 
+    // Default view is the Dashboard
     return (
       <Dashboard
         username={userProfile.username}
@@ -206,7 +254,7 @@ export default function App() {
         manageTournament={manageTournament}
         createTournament={createTournament}
         leaveTournament={leaveTournament}
-        onViewProfile={handleViewProfile}
+        onViewProfile={(id) => handleNavigate('profile', id)}
       />
     );
   };
@@ -216,16 +264,18 @@ export default function App() {
           <div className={styles.errorContainer}>
               <h1>Configuration Error</h1>
               <p>Firebase configuration is missing or incomplete.</p>
-              <p>Please ensure your <code>.env</code> file is set up correctly with the <code>VITE_</code> prefix for local development, or that environment variables are set on your deployment server.</p>
           </div>
       )
   }
 
   return (
     <div className={styles.app}>
-      <Header user={user} userProfile={userProfile} onViewProfile={handleViewProfile} onLogout={handleLogout} />
+      <Header user={user} userProfile={userProfile} onViewProfile={(id) => handleNavigate('profile', id)} onLogout={handleLogout} />
+      {user && userProfile && <Navbar userProfile={userProfile} onNavigate={handleNavigate} />}
       <div className={styles.content}>
-        {renderContent()}
+        <Suspense fallback={<div className={styles.loading}>Loading View...</div>}>
+          {renderContent()}
+        </Suspense>
       </div>
     </div>
   );

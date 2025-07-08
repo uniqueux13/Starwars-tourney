@@ -1,40 +1,112 @@
 /* src/components/Login/Login.module.css */
 .loginContainer {
-    background-color: #1a1a2e;
-    padding: 40px;
-    border-radius: 8px;
-    border: 1px solid #3a3a6a;
-    box-shadow: 0 0 15px rgba(74, 74, 136, 0.5);
-    text-align: center;
-    margin-top: 50px;
+  background-color: #1a1a2e;
+  padding: 30px 40px;
+  border-radius: 8px;
+  border: 1px solid #3a3a6a;
+  box-shadow: 0 0 15px rgba(74, 74, 136, 0.5);
+  text-align: center;
+  margin-top: 50px;
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box; /* This is the fix */
 }
 
 .title {
-    color: #feda4a;
-    text-shadow: 0 0 5px #feda4a;
-    margin: 0 0 10px 0;
+  color: #feda4a;
+  text-shadow: 0 0 5px #feda4a;
+  margin: 0 0 25px 0;
 }
 
-.subtitle {
-    color: #9a9ae0;
-    margin-bottom: 30px;
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.loginButton {
-    font-family: 'Orbitron', sans-serif;
-    background-color: #feda4a;
-    color: #0a0a12;
-    font-weight: bold;
-    border: 1px solid #ffff8d;
-    box-shadow: 0 0 10px #feda4a;
-    padding: 12px 25px;
-    border-radius: 4px;
-    cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    transition: all 0.3s ease;
+.input {
+  background-color: #0a0a12;
+  border: 1px solid #4a4a88;
+  color: #e0e0ff;
+  padding: 12px 15px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Exo 2', sans-serif;
 }
 
-.loginButton:hover {
-    filter: brightness(1.2);
+.submitButton {
+  font-family: 'Orbitron', sans-serif;
+  background-color: #3a3a6a;
+  color: #e0e0ff;
+  border: 1px solid #6a6aff;
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.submitButton:hover {
+  filter: brightness(1.2);
+}
+
+.submitButton:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  color: #9a9ae0;
+  cursor: pointer;
+  margin-top: 15px;
+  text-decoration: underline;
+  font-size: 0.9rem;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #4a4a88;
+  margin: 25px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #4a4a88;
+}
+
+.divider:not(:empty)::before {
+  margin-right: .25em;
+}
+
+.divider:not(:empty)::after {
+  margin-left: .25em;
+}
+
+.googleButton {
+  font-family: 'Orbitron', sans-serif;
+  background-color: #feda4a;
+  color: #0a0a12;
+  font-weight: bold;
+  border: 1px solid #ffff8d;
+  box-shadow: 0 0 10px #feda4a;
+  padding: 12px 25px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  width: 80%;
+}
+
+.errorText {
+    color: #ff4a4a;
+    font-size: 0.9rem;
+    margin: -5px 0 5px 0;
 }
