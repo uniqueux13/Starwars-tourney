@@ -58,35 +58,51 @@
   font-weight: bold;
 }
 
-.cardFooter {
-  text-align: center;
-  padding-top: 10px;
+.detailValueSmall {
+    font-size: 1rem;
+    font-weight: normal;
 }
 
-.joinButton, .manageButton {
+.cardFooter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px; /* This is the key property that adds spacing */
+  padding-top: 10px;
+  flex-wrap: wrap;
+}
+
+.joinButton, .manageButton, .detailsButton {
   font-family: 'Orbitron', sans-serif;
-  padding: 10px 25px;
+  padding: 10px 20px;
   border-radius: 4px;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 1px;
   transition: all 0.3s ease;
   font-weight: bold;
+  border: 1px solid;
+}
+
+.detailsButton {
+    background-color: transparent;
+    color: #9a9ae0;
+    border-color: #4a4a88;
 }
 
 .joinButton {
   background-color: #2a4a2a;
   color: #aaffaa;
-  border: 1px solid #4a8a4a;
+  border-color: #4a8a4a;
 }
 
 .manageButton {
     background-color: #3a3a6a;
     color: #e0e0ff;
-    border: 1px solid #6a6aff;
+    border-color: #6a6aff;
 }
 
-.joinButton:hover, .manageButton:hover {
+.joinButton:hover, .manageButton:hover, .detailsButton:hover {
   filter: brightness(1.2);
 }
 
