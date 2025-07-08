@@ -13,13 +13,16 @@ import { getFirestore, Firestore } from "firebase/firestore";
 
 // Component Imports
 import Header from "./components/Header/Header";
-import PlayerManager from "./components/PlayerManager/PlayerManager";
 import TournamentBracket from "./components/TournamentBracket/TournamentBracket";
 import WinnerDisplay from "./components/WinnerDisplay/WinnerDisplay";
 import Login from "./components/Login/Login";
+import ProfileSetup from "./components/ProfileSetup/ProfileSetup";
+import Dashboard from "./components/Dashboard/Dashboard";
+import TournamentManagement from "./components/TournamentManagement/TournamentManagement";
 
 // Hook Imports
-import { useTournament } from "./hooks/useTournament";
+import { useInviteHandler } from "./hooks/useInviteHandler"; // Import the new invite handler
+import { useUserProfile } from "./hooks/useUserProfile";
 
 // --- STYLES ---
 import styles from "./app.module.css";
@@ -50,23 +53,27 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
-  // Custom hook now provides all tournament and player list logic
+  // Custom Hooks
+  const { userProfile, isLoadingProfile, createUserProfile } = useUserProfile(user, db);
+  // The useInviteHandler now wraps the useTournament hook to manage invite logic
   const {
-    players,
-    matches,
-    isBracketGenerated,
-    tournamentWinner,
+    activeTournament,
+    openTournaments,
     isLoading: isLoadingTournament,
-    myPlayers,
-    addPlayerToMyList,
-    removePlayerFromMyList,
-    addPlayerFromMyListToTournament,
-    handleAddPlayer,
-    handleRemovePlayer,
-    handleGenerateBracket,
-    handleSetWinner,
-    handleReset,
-  } = useTournament(user, db);
+    isJoining,
+    isStarting,
+    isDeleting,
+    isKickingPlayerId,
+    createTournament,
+    joinTournament,
+    startTournament,
+    deleteTournament,
+    kickPlayer,
+    manageTournament,
+    generateInviteLink,
+    setWinner,
+    leaveTournament
+  } = useInviteHandler(user, userProfile, db);
 
   // --- FIREBASE SETUP ---
   useEffect(() => {
@@ -101,19 +108,81 @@ export default function App() {
 
   const handleLogout = async () => {
     if (auth) {
-      await handleReset();
+      await leaveTournament();
       await auth.signOut();
     }
   };
 
   // --- RENDER LOGIC ---
-  const isLoading = isLoadingAuth || isLoadingTournament;
+  const isLoading = isLoadingAuth || isLoadingProfile || isLoadingTournament;
 
-  if (isLoading) {
-    return <div className={styles.loading}>Loading Transmission...</div>;
-  }
-  
-  if (!isFirebaseConfigValid) {
+  const renderContent = () => {
+    if (isLoading) {
+      return <div className={styles.loading}>Loading Transmission...</div>;
+    }
+
+    if (!user) {
+      return <Login onLogin={handleLogin} />;
+    }
+
+    if (!userProfile) {
+      return <ProfileSetup onCreateProfile={createUserProfile} />;
+    }
+
+    if (activeTournament) {
+      const isOrganizer = activeTournament.organizerId === user.uid;
+
+      if (isOrganizer && activeTournament.status === 'setup') {
+        return (
+          <TournamentManagement
+            tournament={activeTournament}
+            currentUser={user}
+            onStartTournament={startTournament}
+            onDeleteTournament={deleteTournament}
+            onKickPlayer={kickPlayer}
+            onGenerateInvite={generateInviteLink}
+            isStarting={isStarting}
+            isDeleting={isDeleting}
+            isKickingPlayerId={isKickingPlayerId}
+          />
+        );
+      }
+      
+      return (
+        <div className={styles.bracketViewContainer}>
+          <h2 className={styles.tournamentTitle}>{activeTournament.name}</h2>
+          {activeTournament.status === 'completed' && activeTournament.tournamentWinner && (
+             <WinnerDisplay winner={activeTournament.tournamentWinner} onClose={leaveTournament} />
+          )}
+          <TournamentBracket
+            matches={activeTournament.matches}
+            onSetWinner={setWinner}
+          />
+          <div className={styles.leaveButtonContainer}>
+              <button onClick={leaveTournament} className={styles.leaveButton}>
+                {isOrganizer ? 'End & Leave' : 'Leave Tournament'}
+              </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <Dashboard
+        username={userProfile.username}
+        currentUser={user}
+        activeTournament={activeTournament}
+        openTournaments={openTournaments}
+        isJoining={isJoining}
+        joinTournament={joinTournament}
+        manageTournament={manageTournament}
+        createTournament={createTournament}
+        leaveTournament={leaveTournament}
+      />
+    );
+  };
+
+  if (!isFirebaseConfigValid && !isLoading) {
       return (
           <div className={styles.errorContainer}>
               <h1>Configuration Error</h1>
@@ -125,39 +194,10 @@ export default function App() {
 
   return (
     <div className={styles.app}>
-      <Header user={user} onLogout={handleLogout} />
-
-      {!user ? (
-        <Login onLogin={handleLogin} />
-      ) : (
-        <>
-          {!isBracketGenerated ? (
-            <PlayerManager
-              players={players}
-              myPlayers={myPlayers}
-              onAddPlayer={handleAddPlayer}
-              onRemovePlayer={handleRemovePlayer}
-              addPlayerToMyList={addPlayerToMyList}
-              removePlayerFromMyList={removePlayerFromMyList}
-              addPlayerFromMyListToTournament={addPlayerFromMyListToTournament}
-              onGenerate={handleGenerateBracket}
-              onReset={handleReset}
-            />
-          ) : (
-            <div className={styles.resetContainer}>
-              <button onClick={handleReset} className={styles.button}>
-                Reset Tournament
-              </button>
-            </div>
-          )}
-
-          <TournamentBracket matches={matches} onSetWinner={handleSetWinner} />
-        </>
-      )}
-
-      {tournamentWinner && (
-        <WinnerDisplay winner={tournamentWinner} onClose={handleReset} />
-      )}
+      <Header user={user} userProfile={userProfile} onLogout={handleLogout} />
+      <div className={styles.content}>
+        {renderContent()}
+      </div>
     </div>
   );
 }

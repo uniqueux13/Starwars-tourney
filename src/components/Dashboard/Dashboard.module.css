@@ -1,0 +1,109 @@
+/* src/components/Dashboard/Dashboard.module.css */
+.dashboardContainer {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  background-color: #1a1a2e;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #3a3a6a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap; /* Allow wrapping on small screens */
+  gap: 15px;
+}
+
+.title {
+  color: #feda4a;
+  text-shadow: 0 0 5px #feda4a;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.createButton {
+  font-family: 'Orbitron', sans-serif;
+  background-color: #feda4a;
+  color: #0a0a12;
+  font-weight: bold;
+  border: 1px solid #ffff8d;
+  box-shadow: 0 0 10px #feda4a;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.createButton:hover {
+  filter: brightness(1.2);
+}
+
+.createFormContainer {
+  background-color: #1a1a2e;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #3a3a6a;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.form {
+  display: flex;
+  gap: 15px;
+}
+
+.input {
+  flex-grow: 1;
+  background-color: #0a0a12;
+  border: 1px solid #4a4a88;
+  color: #e0e0ff;
+  padding: 12px 15px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Exo 2', sans-serif;
+}
+
+.button {
+  font-family: 'Orbitron', sans-serif;
+  background-color: #3a3a6a;
+  color: #e0e0ff;
+  border: 1px solid #6a6aff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+}
+
+.listSection {
+  width: 100%;
+}
+
+.sectionTitle {
+    color: #9a9ae0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 1.2rem;
+    margin: 0 0 15px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #3a3a6a;
+    text-align: center;
+}

@@ -1,5 +1,5 @@
 // src/hooks/useTournament.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Player, Match } from '../types';
 import { User } from 'firebase/auth';
 import { 
@@ -9,278 +9,386 @@ import {
   getDoc,
   updateDoc,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  writeBatch,
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc
 } from 'firebase/firestore';
+import { UserProfile } from './useUserProfile';
 
-// The hook now accepts the Firestore instance `db`
-export const useTournament = (user: User | null, db: Firestore | null) => {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [isBracketGenerated, setIsBracketGenerated] = useState(false);
-  const [tournamentWinner, setTournamentWinner] = useState<Player | null>(null);
-  const [tournamentId, setTournamentId] = useState<string | null>(null);
-  const [myPlayers, setMyPlayers] = useState<Player[]>([]); // State for user's saved players
+export interface Tournament {
+  id: string;
+  name: string;
+  organizerId: string;
+  organizerUsername: string;
+  createdAt: Date;
+  status: 'setup' | 'in_progress' | 'completed';
+  players: Player[];
+  matches: Match[];
+  isBracketGenerated: boolean;
+  tournamentWinner: Player | null;
+  inviteToken?: string; // Add optional inviteToken field
+}
+
+// The hook now accepts an optional inviteToken
+export const useTournament = (user: User | null, userProfile: UserProfile | null, db: Firestore | null, inviteToken: string | null) => {
+  const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
+  const [openTournaments, setOpenTournaments] = useState<Tournament[]>([]);
+  const [myPlayers, setMyPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isJoining, setIsJoining] = useState<string | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isKickingPlayerId, setIsKickingPlayerId] = useState<string | null>(null);
 
-  // --- Firestore Persistence ---
+  const joinTournament = useCallback(async (id: string) => {
+    if (!db || !user || !userProfile) return;
 
-  // This effect runs when the user logs in to load all their data
+    setIsJoining(id);
+    try {
+      const tournamentDocRef = doc(db, 'tournaments', id);
+      
+      const playerToAdd: Player = {
+        id: user.uid,
+        name: userProfile.username,
+        userId: user.uid
+      };
+
+      // **UX FIX:** We no longer set the activeTournamentId for the player here.
+      // We just add them to the roster. They will be "pulled in" when the TO starts the tournament.
+      await updateDoc(tournamentDocRef, { players: arrayUnion(playerToAdd) });
+
+      // After joining, just refresh the public list to show the updated player count.
+      await fetchOpenTournaments();
+
+    } catch (error) {
+      console.error("Error joining tournament:", error);
+      alert("Failed to join tournament. You may already be registered.");
+    } finally {
+      setIsJoining(null);
+    }
+  }, [db, user, userProfile]);
+
+  const joinTournamentByInvite = useCallback(async (token: string) => {
+    if (!db || !user || !userProfile) return;
+
+    setIsJoining('invite'); // Use a special identifier for invite joining
+    try {
+        const tournamentsCol = collection(db, 'tournaments');
+        const q = query(tournamentsCol, where("inviteToken", "==", token), where("status", "==", "setup"));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            alert("This invitation is invalid or has expired.");
+            return;
+        }
+
+        const tournamentDoc = querySnapshot.docs[0];
+        await joinTournament(tournamentDoc.id);
+
+    } catch (error) {
+        console.error("Error joining by invite:", error);
+    } finally {
+        setIsJoining(null);
+    }
+  }, [db, user, userProfile, joinTournament]);
+
+  const fetchOpenTournaments = useCallback(async () => {
+    if (!db) return;
+    const tournamentsCol = collection(db, 'tournaments');
+    const q = query(tournamentsCol, where("status", "==", "setup"));
+    const querySnapshot = await getDocs(q);
+    const tournaments: Tournament[] = [];
+    querySnapshot.forEach((doc) => {
+      tournaments.push({ id: doc.id, ...doc.data() } as Tournament);
+    });
+    setOpenTournaments(tournaments);
+  }, [db]);
+
+
   useEffect(() => {
     const loadUserData = async () => {
       setIsLoading(true);
       try {
-        if (!user || !db) return;
+        if (!user || !db || !userProfile) return;
         
+        // This logic remains to handle loading an already active tournament on page load
         const userDocRef = doc(db, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
+        await fetchOpenTournaments();
+
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          // Load the user's saved player list
           setMyPlayers(userData.myPlayers || []);
 
-          // Load the active tournament if it exists
           if (userData.activeTournamentId) {
             const activeId = userData.activeTournamentId;
             const tournamentDocRef = doc(db, 'tournaments', activeId);
             const tournamentDocSnap = await getDoc(tournamentDocRef);
 
             if (tournamentDocSnap.exists()) {
-              const data = tournamentDocSnap.data();
-              setPlayers(data.players || []);
-              setMatches(data.matches || []);
-              setIsBracketGenerated(data.isBracketGenerated || false);
-              setTournamentWinner(data.tournamentWinner || null);
-              setTournamentId(activeId);
+              setActiveTournament({ id: activeId, ...tournamentDocSnap.data() } as Tournament);
             }
+          } else {
+            setActiveTournament(null);
           }
         }
+        
+        // Process invite link after loading initial state
+        if (inviteToken) {
+            await joinTournamentByInvite(inviteToken);
+        }
+
       } catch (error) {
         console.error("Error loading user data:", error);
-        alert("Failed to load your data. Please check the console for details.");
       } finally {
         setIsLoading(false);
       }
     };
 
     loadUserData();
-  }, [user, db]);
+  }, [user, db, userProfile, fetchOpenTournaments, inviteToken, joinTournamentByInvite]);
 
-  // General purpose function to save the tournament state
-  const saveCurrentState = async (
-    currentTournamentId: string, 
-    currentPlayers: Player[], 
-    currentMatches: Match[],
-    currentWinner: Player | null,
-    bracketGenerated: boolean
-    ) => {
-    if (!db || !user) return;
+  const generateInviteLink = async (): Promise<string | null> => {
+    if (!db || !activeTournament) return null;
+
     try {
-      const tournamentDocRef = doc(db, 'tournaments', currentTournamentId);
-      await setDoc(tournamentDocRef, {
-        ownerId: user.uid,
-        players: currentPlayers,
-        matches: currentMatches,
-        tournamentWinner: currentWinner,
-        isBracketGenerated: bracketGenerated,
-        updatedAt: new Date(),
-      });
+        const token = crypto.randomUUID().slice(0, 8);
+        const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
+        await updateDoc(tournamentDocRef, { inviteToken: token });
+
+        setActiveTournament(prev => prev ? { ...prev, inviteToken: token } : null);
+
+        return `${window.location.origin}?invite=${token}`;
     } catch (error) {
-      console.error("Error saving tournament state:", error);
-      alert("Failed to save tournament progress. Please check your connection and try again.");
+        console.error("Error generating invite link:", error);
+        return null;
     }
   };
 
-  // --- "My Players" List Logic ---
+  const kickPlayer = async (playerToKick: Player) => {
+    if (!db || !activeTournament || activeTournament.status !== 'setup') return;
 
-  const addPlayerToMyList = async (name: string) => {
-    if (!db || !user) return;
-    if (myPlayers.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
-      alert("This player is already in your list.");
-      return;
-    }
-    const newPlayer: Player = { id: crypto.randomUUID(), name };
-    
+    setIsKickingPlayerId(playerToKick.id);
     try {
-      const userDocRef = doc(db, 'users', user.uid);
-      // Use arrayUnion to safely add the new player to the array in Firestore
-      await updateDoc(userDocRef, {
-        myPlayers: arrayUnion(newPlayer)
+      const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
+      
+      await updateDoc(tournamentDocRef, {
+        players: arrayRemove(playerToKick)
       });
-      // Update local state only after successful db operation
-      setMyPlayers((prev) => [...prev, newPlayer]);
-    } catch (error) {
-      console.error("Error adding player to your list:", error);
-    }
-  };
 
-  const removePlayerFromMyList = async (playerToRemove: Player) => {
-    if (!db || !user) return;
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      // Use arrayRemove to safely remove the player from the array in Firestore
-      await updateDoc(userDocRef, {
-        myPlayers: arrayRemove(playerToRemove)
+      setActiveTournament(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          players: prev.players.filter(p => p.id !== playerToKick.id)
+        };
       });
-      // Update local state
-      setMyPlayers((prev) => prev.filter((p) => p.id !== playerToRemove.id));
-    } catch (error) {
-      console.error("Error removing player from your list:", error);
-    }
-  };
 
-  const addPlayerFromMyListToTournament = (player: Player) => {
-    // This function just adds a player to the *local* tournament state.
-    // It doesn't need to save, as generating the bracket is what saves.
-    if (players.some((p) => p.name.toLowerCase() === player.name.toLowerCase())) {
-      alert("This player is already in the tournament.");
-      return;
-    }
-    setPlayers((prev) => [...prev, player]);
-  };
-
-
-  // --- Tournament Logic (now with saving) ---
-
-  const handleAddPlayer = (name: string) => {
-    if (isBracketGenerated) {
-      alert('Cannot add players after the bracket has been generated. Please reset first.');
-      return;
-    }
-    if (players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
-      alert('Player with this name already exists.');
-      return;
-    }
-    const newPlayer: Player = {
-      id: crypto.randomUUID(),
-      name,
-      userId: user?.uid,
-    };
-    setPlayers((prev) => [...prev, newPlayer]);
-  };
-
-  const handleRemovePlayer = (id: string) => {
-    if (isBracketGenerated) {
-      alert('Cannot remove players after the bracket has been generated. Please reset first.');
-      return;
-    }
-    setPlayers((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  const handleReset = async () => {
-    try {
-      if (db && user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, { activeTournamentId: null }, { merge: true });
+      const kickedUserDocRef = doc(db, 'users', playerToKick.id);
+      const kickedUserDocSnap = await getDoc(kickedUserDocRef);
+      if (kickedUserDocSnap.exists() && kickedUserDocSnap.data().activeTournamentId === activeTournament.id) {
+          await updateDoc(kickedUserDocRef, { activeTournamentId: null });
       }
+
     } catch (error) {
-        console.error("Error resetting tournament in database:", error);
-        alert("There was an error resetting the tournament. Please check the console for details.");
+      console.error("Error kicking player:", error);
     } finally {
-        setPlayers([]);
-        setMatches([]);
-        setIsBracketGenerated(false);
-        setTournamentWinner(null);
-        setTournamentId(null);
+      setIsKickingPlayerId(null);
     }
   };
 
-  const handleGenerateBracket = async () => {
-    if (players.length < 2 || !db || !user) {
-      alert('Need at least 2 players to generate a bracket.');
-      return;
-    }
+  const startTournament = async () => {
+    if (!activeTournament || activeTournament.players.length < 2 || !db) return;
 
-    const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
-    const numPlayers = shuffledPlayers.length;
-    const bracketSize = Math.pow(2, Math.ceil(Math.log2(numPlayers)));
+    setIsStarting(true);
+    try {
+      const { players, id: tournamentId } = activeTournament;
+      const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
+      const numPlayers = shuffledPlayers.length;
+      const bracketSize = Math.pow(2, Math.ceil(Math.log2(numPlayers)));
 
-    const roundOnePlayers: (Player | null)[] = [];
-    for (let i = 0; i < bracketSize / 2; i++) {
-      roundOnePlayers.push(shuffledPlayers[i] || null);
-    }
-    for (let i = bracketSize / 2; i < numPlayers; i++) {
-      const insertIndex = (i - bracketSize / 2) * 2 + 1;
-      roundOnePlayers.splice(insertIndex, 0, shuffledPlayers[i]);
-    }
+      const roundOnePlayers: (Player | null)[] = [];
+      for (let i = 0; i < bracketSize / 2; i++) {
+        roundOnePlayers.push(shuffledPlayers[i] || null);
+      }
+      for (let i = bracketSize / 2; i < numPlayers; i++) {
+        const insertIndex = (i - bracketSize / 2) * 2 + 1;
+        roundOnePlayers.splice(insertIndex, 0, shuffledPlayers[i]);
+      }
 
-    let allMatches: Match[] = [];
-    let matchIdCounter = 0;
+      let allMatches: Match[] = [];
+      let matchIdCounter = 0;
 
-    for (let i = 0; i < roundOnePlayers.length; i += 2) {
-      const p1 = roundOnePlayers[i];
-      const p2 = roundOnePlayers[i + 1] || { id: 'BYE', name: 'BYE' };
-      allMatches.push({
-        id: matchIdCounter++,
-        round: 1,
-        matchInRound: i / 2,
-        players: [p1, p2],
-        winner: p2.id === 'BYE' ? p1 : null,
-      });
-    }
-
-    let currentRound = 1;
-    let matchesInCurrentRound = allMatches.length;
-    while (matchesInCurrentRound > 1) {
-      const matchesInNextRound = matchesInCurrentRound / 2;
-      for (let i = 0; i < matchesInNextRound; i++) {
+      for (let i = 0; i < roundOnePlayers.length; i += 2) {
+        const p1 = roundOnePlayers[i];
+        const p2 = roundOnePlayers[i + 1] || { id: 'BYE', name: 'BYE' };
         allMatches.push({
           id: matchIdCounter++,
-          round: currentRound + 1,
-          matchInRound: i,
-          players: [null, null],
-          winner: null,
+          round: 1,
+          matchInRound: i / 2,
+          players: [p1, p2],
+          winner: p2.id === 'BYE' ? p1 : null,
         });
       }
-      matchesInCurrentRound = matchesInNextRound;
-      currentRound++;
-    }
 
-    const finalMatches = [...allMatches];
-    finalMatches
-      .filter((m) => m.round === 1 && m.winner)
-      .forEach((match) => {
-        const nextRound = match.round + 1;
-        const nextMatchInRound = Math.floor(match.matchInRound / 2);
-        const playerSlot = match.matchInRound % 2;
-        const nextMatch = finalMatches.find(
-          (m) => m.round === nextRound && m.matchInRound === nextMatchInRound
-        );
-        if (nextMatch) {
-          nextMatch.players[playerSlot] = match.winner;
+      let currentRound = 1;
+      let matchesInCurrentRound = allMatches.length;
+      while (matchesInCurrentRound > 1) {
+        const matchesInNextRound = matchesInCurrentRound / 2;
+        for (let i = 0; i < matchesInNextRound; i++) {
+          allMatches.push({
+            id: matchIdCounter++,
+            round: currentRound + 1,
+            matchInRound: i,
+            players: [null, null],
+            winner: null,
+          });
         }
-      });
-    
-    const newTournamentId = crypto.randomUUID();
-    setTournamentId(newTournamentId);
-    setMatches(finalMatches);
-    setIsBracketGenerated(true);
+        matchesInCurrentRound = matchesInNextRound;
+        currentRound++;
+      }
 
-    await saveCurrentState(newTournamentId, players, finalMatches, null, true);
-    
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, { activeTournamentId: newTournamentId }, { merge: true });
+      const finalMatches = [...allMatches];
+      finalMatches
+        .filter((m) => m.round === 1 && m.winner)
+        .forEach((match) => {
+          const nextRound = match.round + 1;
+          const nextMatchInRound = Math.floor(match.matchInRound / 2);
+          const playerSlot = match.matchInRound % 2;
+          const nextMatch = finalMatches.find(
+            (m) => m.round === nextRound && m.matchInRound === nextMatchInRound
+          );
+          if (nextMatch) {
+            nextMatch.players[playerSlot] = match.winner;
+          }
+        });
+
+      const tournamentDocRef = doc(db, 'tournaments', tournamentId);
+      // **UX FIX:** When starting, we now also set the activeTournamentId for all players.
+      const batch = writeBatch(db);
+      batch.update(tournamentDocRef, {
+        matches: finalMatches,
+        isBracketGenerated: true,
+        status: 'in_progress',
+      });
+      players.forEach(player => {
+        const playerDocRef = doc(db, 'users', player.id);
+        batch.update(playerDocRef, { activeTournamentId: tournamentId });
+      });
+      await batch.commit();
+
+      setActiveTournament(prev => prev ? { ...prev, matches: finalMatches, isBracketGenerated: true, status: 'in_progress' } : null);
+
     } catch (error) {
-      console.error("Error linking tournament to user:", error);
+      console.error("Error starting tournament:", error);
+    } finally {
+      setIsStarting(false);
     }
   };
 
-  const handleSetWinner = async (matchId: number, winner: Player) => {
-    let nextMatches = [...matches];
+  const deleteTournament = async () => {
+    if (!db || !user || !activeTournament) return;
+    
+    setIsDeleting(true);
+    try {
+      const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
+      const userDocRef = doc(db, 'users', user.uid);
+
+      const batch = writeBatch(db);
+      batch.delete(tournamentDocRef);
+      batch.update(userDocRef, { activeTournamentId: null });
+      await batch.commit();
+
+      setActiveTournament(null);
+      await fetchOpenTournaments();
+
+    } catch (error) {
+      console.error("Error deleting tournament:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const manageTournament = async (id: string) => {
+    if (!db || !user) return;
+    const tournamentDocRef = doc(db, 'tournaments', id);
+    const userDocRef = doc(db, 'users', user.uid);
+
+    const batch = writeBatch(db);
+    batch.update(userDocRef, { activeTournamentId: id });
+    await batch.commit();
+
+    const tournamentDocSnap = await getDoc(tournamentDocRef);
+    if (tournamentDocSnap.exists()) {
+      setActiveTournament({ id, ...tournamentDocSnap.data() } as Tournament);
+    }
+  };
+
+  const createTournament = async (name: string) => {
+    if (!db || !user || !userProfile) return;
+
+    setIsLoading(true);
+    const newTournamentId = crypto.randomUUID();
+    const tournamentDocRef = doc(db, 'tournaments', newTournamentId);
+    const userDocRef = doc(db, 'users', user.uid);
+
+    try {
+      // Create the TO as a player object
+      const organizerAsPlayer: Player = {
+        id: user.uid,
+        name: userProfile.username,
+        userId: user.uid,
+      };
+
+      const newTournamentData: Omit<Tournament, 'id'> = {
+        name: name,
+        organizerId: user.uid,
+        organizerUsername: userProfile.username,
+        createdAt: new Date(),
+        status: 'setup',
+        players: [organizerAsPlayer], // Add the organizer to the players list
+        matches: [],
+        isBracketGenerated: false,
+        tournamentWinner: null,
+      };
+
+      const batch = writeBatch(db);
+      batch.set(tournamentDocRef, newTournamentData);
+      batch.set(userDocRef, { activeTournamentId: newTournamentId }, { merge: true });
+      await batch.commit();
+
+      setActiveTournament({ id: newTournamentId, ...newTournamentData });
+
+    } catch (error) {
+      console.error("Error creating tournament:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const setWinner = async (matchId: number, winner: Player) => {
+    if (!activeTournament || !db) return;
+    
+    let nextMatches = [...activeTournament.matches];
     const matchIndex = nextMatches.findIndex((m) => m.id === matchId);
     if (matchIndex === -1) return;
 
     nextMatches[matchIndex].winner = winner;
 
-    const bracketSize = Math.pow(2, Math.ceil(Math.log2(players.length)));
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(activeTournament.players.length)));
     const totalRounds = Math.log2(bracketSize);
     const currentMatch = nextMatches[matchIndex];
     let finalWinner: Player | null = null;
+    let newStatus = activeTournament.status;
 
     if (currentMatch.round === totalRounds) {
-      setTournamentWinner(winner);
       finalWinner = winner;
+      newStatus = 'completed';
     } else {
       const nextRound = currentMatch.round + 1;
       const nextMatchInRound = Math.floor(currentMatch.matchInRound / 2);
@@ -294,27 +402,51 @@ export const useTournament = (user: User | null, db: Firestore | null) => {
       }
     }
     
-    setMatches(nextMatches);
+    setActiveTournament(prev => prev ? { ...prev, matches: nextMatches, tournamentWinner: finalWinner, status: newStatus } : null);
 
-    if (tournamentId) {
-        await saveCurrentState(tournamentId, players, nextMatches, finalWinner, true);
+    const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
+    await updateDoc(tournamentDocRef, {
+        matches: nextMatches,
+        tournamentWinner: finalWinner,
+        status: newStatus
+    });
+  };
+
+  const leaveTournament = async () => {
+    if (!db || !user || !activeTournament) return;
+    
+    if (activeTournament.status === 'setup' && activeTournament.players.some(p => p.id === user.uid)) {
+        const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
+        const playerToRemove = activeTournament.players.find(p => p.id === user.uid);
+        if (playerToRemove) {
+            await updateDoc(tournamentDocRef, { players: arrayRemove(playerToRemove) });
+        }
     }
+
+    const userDocRef = doc(db, 'users', user.uid);
+    await updateDoc(userDocRef, { activeTournamentId: null });
+
+    setActiveTournament(null);
+    await fetchOpenTournaments();
   };
 
   return {
-    players,
-    matches,
-    isBracketGenerated,
-    tournamentWinner,
+    activeTournament,
+    openTournaments,
+    myPlayers,
     isLoading,
-    myPlayers, // Export the saved players list
-    addPlayerToMyList, // Export the new functions
-    removePlayerFromMyList,
-    addPlayerFromMyListToTournament,
-    handleAddPlayer,
-    handleRemovePlayer,
-    handleGenerateBracket,
-    handleSetWinner,
-    handleReset,
+    isJoining,
+    isStarting,
+    isDeleting,
+    isKickingPlayerId,
+    createTournament,
+    joinTournament,
+    startTournament,
+    deleteTournament,
+    kickPlayer,
+    manageTournament,
+    generateInviteLink,
+    setWinner,
+    leaveTournament
   };
 };

@@ -1,0 +1,69 @@
+/* src/components/ProfileSetup/ProfileSetup.module.css */
+.setupContainer {
+  background-color: #1a1a2e;
+  padding: 40px;
+  border-radius: 8px;
+  border: 1px solid #3a3a6a;
+  box-shadow: 0 0 15px rgba(74, 74, 136, 0.5);
+  text-align: center;
+  margin-top: 50px;
+  max-width: 500px;
+  width: 100%;
+}
+
+.title {
+  color: #feda4a;
+  text-shadow: 0 0 5px #feda4a;
+  margin: 0 0 10px 0;
+}
+
+.subtitle {
+  color: #9a9ae0;
+  margin-bottom: 30px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.input {
+  background-color: #0a0a12;
+  border: 1px solid #4a4a88;
+  color: #e0e0ff;
+  padding: 12px 15px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: 'Exo 2', sans-serif;
+  text-align: center;
+}
+
+.button {
+  font-family: 'Orbitron', sans-serif;
+  background-color: #feda4a;
+  color: #0a0a12;
+  font-weight: bold;
+  border: 1px solid #ffff8d;
+  box-shadow: 0 0 10px #feda4a;
+  padding: 12px 25px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.button:hover {
+  filter: brightness(1.2);
+}
+
+.button:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.7);
+}
+
+.errorText {
+    color: #ff4a4a;
+    margin-top: 10px;
+}

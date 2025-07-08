@@ -1,0 +1,112 @@
+/* src/components/TournamentList/TournamentList.module.css */
+.listContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 800px;
+}
+
+.tournamentCard {
+  background-color: #1a1a2e;
+  border: 1px solid #3a3a6a;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transition: all 0.3s ease;
+}
+
+.tournamentCard:hover {
+    border-color: #6a6aff;
+    box-shadow: 0 0 10px rgba(106, 106, 255, 0.3);
+}
+
+.cardHeader {
+  border-bottom: 1px solid #3a3a6a;
+  padding-bottom: 15px;
+}
+
+.tournamentName {
+  color: #feda4a;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.organizer {
+  color: #9a9ae0;
+  font-size: 0.9rem;
+}
+
+.cardBody {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+
+.detailLabel {
+  display: block;
+  color: #9a9ae0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.detailValue {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.cardFooter {
+  text-align: center;
+  padding-top: 10px;
+}
+
+.joinButton, .manageButton {
+  font-family: 'Orbitron', sans-serif;
+  padding: 10px 25px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.joinButton {
+  background-color: #2a4a2a;
+  color: #aaffaa;
+  border: 1px solid #4a8a4a;
+}
+
+.manageButton {
+    background-color: #3a3a6a;
+    color: #e0e0ff;
+    border: 1px solid #6a6aff;
+}
+
+.joinButton:hover, .manageButton:hover {
+  filter: brightness(1.2);
+}
+
+.joinButton:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+}
+
+.registeredText {
+    color: #6aff6a;
+    font-style: italic;
+}
+
+.noTournaments {
+    text-align: center;
+    color: #9a9ae0;
+    margin-top: 40px;
+}
+
+.noTournaments h3 {
+    color: #feda4a;
+    margin-bottom: 10px;
+}

@@ -35,6 +35,15 @@
     color: #9a9ae0;
 }
 
+.welcomeText {
+    font-size: 0.9rem;
+}
+
+.displayName {
+    font-weight: bold;
+    color: #e0e0ff;
+}
+
 .logoutButton {
     font-family: 'Orbitron', sans-serif;
     background: none;
