@@ -21,7 +21,7 @@ import Dashboard from "./components/Dashboard/Dashboard";
 import TournamentManagement from "./components/TournamentManagement/TournamentManagement";
 
 // Hook Imports
-import { useInviteHandler } from "./hooks/useInviteHandler"; // Import the new invite handler
+import { useInviteHandler } from "./hooks/useInviteHandler";
 import { useUserProfile } from "./hooks/useUserProfile";
 
 // --- STYLES ---
@@ -55,7 +55,6 @@ export default function App() {
 
   // Custom Hooks
   const { userProfile, isLoadingProfile, createUserProfile } = useUserProfile(user, db);
-  // The useInviteHandler now wraps the useTournament hook to manage invite logic
   const {
     activeTournament,
     openTournaments,
@@ -64,6 +63,7 @@ export default function App() {
     isStarting,
     isDeleting,
     isKickingPlayerId,
+    isSavingSettings,
     createTournament,
     joinTournament,
     startTournament,
@@ -71,6 +71,7 @@ export default function App() {
     kickPlayer,
     manageTournament,
     generateInviteLink,
+    saveTournamentSettings,
     setWinner,
     leaveTournament
   } = useInviteHandler(user, userProfile, db);
@@ -141,9 +142,11 @@ export default function App() {
             onDeleteTournament={deleteTournament}
             onKickPlayer={kickPlayer}
             onGenerateInvite={generateInviteLink}
+            onSaveSettings={saveTournamentSettings}
             isStarting={isStarting}
             isDeleting={isDeleting}
             isKickingPlayerId={isKickingPlayerId}
+            isSavingSettings={isSavingSettings}
           />
         );
       }

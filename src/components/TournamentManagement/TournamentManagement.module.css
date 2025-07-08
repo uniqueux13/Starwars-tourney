@@ -8,12 +8,11 @@
   padding: 25px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
 }
 
 .header {
   text-align: center;
-  border-bottom: 1px solid #3a3a6a;
   padding-bottom: 20px;
 }
 
@@ -29,6 +28,43 @@
   font-size: 1rem;
   text-transform: uppercase;
   letter-spacing: 2px;
+}
+
+/* Tab Navigation Styles */
+.navTabs {
+    display: flex;
+    border-bottom: 1px solid #3a3a6a;
+    gap: 10px; /* This is the fix to add space between the buttons */
+}
+
+.navButton {
+    font-family: 'Orbitron', sans-serif;
+    background: none;
+    border: none;
+    color: #9a9ae0;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.navButtonActive {
+    color: #feda4a;
+    border-bottom-color: #feda4a;
+}
+
+.contentSection {
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    animation: fadeInContent 0.5s ease;
+}
+
+@keyframes fadeInContent {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .sectionTitle {
@@ -80,6 +116,7 @@
     text-align: center;
     margin-top: 5px;
     font-family: monospace;
+    box-sizing: border-box;
 }
 
 
@@ -133,6 +170,8 @@
 /* Actions Section Styles */
 .actionsSection {
   text-align: center;
+  border-top: 1px solid #3a3a6a;
+  padding-top: 20px;
 }
 
 .buttonGroup {

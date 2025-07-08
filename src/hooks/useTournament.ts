@@ -18,6 +18,7 @@ import {
   deleteDoc
 } from 'firebase/firestore';
 import { UserProfile } from './useUserProfile';
+import { TournamentRules } from '../components/TournamentSettings/TournamentSettings'; // Import the new type
 
 export interface Tournament {
   id: string;
@@ -30,10 +31,10 @@ export interface Tournament {
   matches: Match[];
   isBracketGenerated: boolean;
   tournamentWinner: Player | null;
-  inviteToken?: string; // Add optional inviteToken field
+  inviteToken?: string;
+  rules?: TournamentRules; // Add optional rules field
 }
 
-// The hook now accepts an optional inviteToken
 export const useTournament = (user: User | null, userProfile: UserProfile | null, db: Firestore | null, inviteToken: string | null) => {
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [openTournaments, setOpenTournaments] = useState<Tournament[]>([]);
@@ -43,6 +44,7 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
   const [isStarting, setIsStarting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isKickingPlayerId, setIsKickingPlayerId] = useState<string | null>(null);
+  const [isSavingSettings, setIsSavingSettings] = useState(false); // New loading state for settings
 
   const joinTournament = useCallback(async (id: string) => {
     if (!db || !user || !userProfile) return;
@@ -57,16 +59,11 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
         userId: user.uid
       };
 
-      // **UX FIX:** We no longer set the activeTournamentId for the player here.
-      // We just add them to the roster. They will be "pulled in" when the TO starts the tournament.
       await updateDoc(tournamentDocRef, { players: arrayUnion(playerToAdd) });
-
-      // After joining, just refresh the public list to show the updated player count.
       await fetchOpenTournaments();
 
     } catch (error) {
       console.error("Error joining tournament:", error);
-      alert("Failed to join tournament. You may already be registered.");
     } finally {
       setIsJoining(null);
     }
@@ -75,7 +72,7 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
   const joinTournamentByInvite = useCallback(async (token: string) => {
     if (!db || !user || !userProfile) return;
 
-    setIsJoining('invite'); // Use a special identifier for invite joining
+    setIsJoining('invite');
     try {
         const tournamentsCol = collection(db, 'tournaments');
         const q = query(tournamentsCol, where("inviteToken", "==", token), where("status", "==", "setup"));
@@ -115,7 +112,6 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
       try {
         if (!user || !db || !userProfile) return;
         
-        // This logic remains to handle loading an already active tournament on page load
         const userDocRef = doc(db, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
@@ -138,7 +134,6 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
           }
         }
         
-        // Process invite link after loading initial state
         if (inviteToken) {
             await joinTournamentByInvite(inviteToken);
         }
@@ -152,6 +147,23 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
 
     loadUserData();
   }, [user, db, userProfile, fetchOpenTournaments, inviteToken, joinTournamentByInvite]);
+
+  // --- NEW: Settings Management Logic ---
+  const saveTournamentSettings = async (settings: TournamentRules) => {
+    if (!db || !activeTournament) return;
+    
+    setIsSavingSettings(true);
+    try {
+      const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
+      await updateDoc(tournamentDocRef, { rules: settings });
+      setActiveTournament(prev => prev ? { ...prev, rules: settings } : null);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      alert("Failed to save settings.");
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const generateInviteLink = async (): Promise<string | null> => {
     if (!db || !activeTournament) return null;
@@ -269,7 +281,6 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
         });
 
       const tournamentDocRef = doc(db, 'tournaments', tournamentId);
-      // **UX FIX:** When starting, we now also set the activeTournamentId for all players.
       const batch = writeBatch(db);
       batch.update(tournamentDocRef, {
         matches: finalMatches,
@@ -338,7 +349,6 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
     const userDocRef = doc(db, 'users', user.uid);
 
     try {
-      // Create the TO as a player object
       const organizerAsPlayer: Player = {
         id: user.uid,
         name: userProfile.username,
@@ -351,10 +361,15 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
         organizerUsername: userProfile.username,
         createdAt: new Date(),
         status: 'setup',
-        players: [organizerAsPlayer], // Add the organizer to the players list
+        players: [organizerAsPlayer],
         matches: [],
         isBracketGenerated: false,
         tournamentWinner: null,
+        rules: { // Initialize with default empty rules
+          description: '',
+          schedule: '',
+          bannedItems: [],
+        }
       };
 
       const batch = writeBatch(db);
@@ -439,6 +454,7 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
     isStarting,
     isDeleting,
     isKickingPlayerId,
+    isSavingSettings,
     createTournament,
     joinTournament,
     startTournament,
@@ -446,6 +462,7 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
     kickPlayer,
     manageTournament,
     generateInviteLink,
+    saveTournamentSettings,
     setWinner,
     leaveTournament
   };
