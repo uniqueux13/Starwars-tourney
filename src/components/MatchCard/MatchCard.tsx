@@ -5,11 +5,17 @@ import styles from './MatchCard.module.css';
 
 interface MatchCardProps {
   match: Match;
+  organizerId: string;
+  currentUserId: string;
   onSetWinner: (matchId: number, winner: Player) => void;
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, onSetWinner }) => {
-  const canSetWinner = match.players.every((p) => p && p.id !== 'BYE') && !match.winner;
+const MatchCard: React.FC<MatchCardProps> = ({ match, organizerId, currentUserId, onSetWinner }) => {
+  // The winner can be set only if the match is full, there's no winner yet, AND the current user is the organizer.
+  const canSetWinner = 
+    match.players.every((p) => p && p.id !== 'BYE') && 
+    !match.winner &&
+    currentUserId === organizerId;
 
   const PlayerDisplay: React.FC<{ player: Player | null; isWinner: boolean }> = ({
     player,
@@ -20,7 +26,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onSetWinner }) => {
 
     return (
       <div className={`${styles.playerSlot} ${isWinner ? styles.winner : ''}`}>
-        <span className={styles.playerName}>{player.name}</span>
+        <div className={styles.playerInfo}>
+            <img src={player.photoURL || `https://placehold.co/32x32/2a2a4e/e0e0ff?text=${player.name.charAt(0)}`} alt={player.name} className={styles.playerImage} />
+            <span className={styles.playerName}>{player.name}</span>
+        </div>
         {canSetWinner && (
           <button
             className={styles.winButton}

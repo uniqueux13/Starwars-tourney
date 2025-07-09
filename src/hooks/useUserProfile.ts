@@ -1,14 +1,16 @@
 // src/hooks/useUserProfile.ts
 import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { Firestore, doc, getDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { Firestore, doc, getDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-// Define the structure of a user's profile, now with stats
+// Define the structure of a user's profile, now with photoURL
 export interface UserProfile {
   uid: string;
   username: string;
   displayName: string | null;
   email: string | null;
+  photoURL: string | null; // Added photoURL
   createdAt: Date;
   stats: {
     tournamentsHosted: number;
@@ -20,6 +22,7 @@ export interface UserProfile {
 export const useUserProfile = (user: User | null, db: Firestore | null) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Effect to load the user's profile from Firestore
   useEffect(() => {
@@ -45,7 +48,6 @@ export const useUserProfile = (user: User | null, db: Firestore | null) => {
     fetchUserProfile();
   }, [user, db]);
 
-  // Function to create a new user profile with a unique username
   const createUserProfile = async (username: string): Promise<{ success: boolean; message: string }> => {
     if (!user || !db) {
       return { success: false, message: 'User not authenticated.' };
@@ -72,8 +74,8 @@ export const useUserProfile = (user: User | null, db: Firestore | null) => {
         username: sanitizedUsername,
         displayName: user.displayName,
         email: user.email,
+        photoURL: user.photoURL, // Save the photoURL on creation
         createdAt: new Date(),
-        // Initialize stats for new users
         stats: {
           tournamentsHosted: 0,
           tournamentsPlayed: 0,
@@ -94,5 +96,35 @@ export const useUserProfile = (user: User | null, db: Firestore | null) => {
     }
   };
 
-  return { userProfile, isLoadingProfile, createUserProfile };
+  // Function to upload the profile picture
+  const saveProfilePicture = async (image: Blob) => {
+    if (!user || !db) return;
+
+    setIsUploading(true);
+    try {
+      const storage = getStorage();
+      const filePath = `profile-pictures/${user.uid}.jpg`;
+      const storageRef = ref(storage, filePath);
+
+      // Upload the file
+      const snapshot = await uploadBytes(storageRef, image);
+      // Get the public URL
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      // Save the URL to the user's profile document
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, { photoURL: downloadURL });
+
+      // Update the local state to reflect the change immediately
+      setUserProfile(prev => prev ? { ...prev, photoURL: downloadURL } : null);
+
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      alert("Failed to upload picture. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return { userProfile, isLoadingProfile, isUploading, createUserProfile, saveProfilePicture };
 };

@@ -20,6 +20,19 @@
   transition: background-color 0.3s ease;
 }
 
+.playerInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.playerImage {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
 .playerName {
   flex-grow: 1;
 }

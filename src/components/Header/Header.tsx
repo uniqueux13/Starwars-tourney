@@ -1,25 +1,26 @@
 // src/components/Header/Header.tsx
 import React from 'react';
-import { User } from 'firebase/auth';
-import { UserProfile } from '../../hooks/useUserProfile'; // Import the UserProfile type
 import styles from './Header.module.css';
+import { User } from 'firebase/auth';
+import { UserProfile } from '../../hooks/useUserProfile';
 
 interface HeaderProps {
   user: User | null;
   userProfile: UserProfile | null;
-  onViewProfile: (profileId: string) => void; // Add the new prop here
+  onViewProfile: (profileId: string) => void;
   onLogout: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ user, userProfile, onViewProfile, onLogout }) => {
-  // Determine the best name to display
   const displayName = userProfile?.username || user?.displayName || 'Pilot';
+  const photoURL = userProfile?.photoURL || 'https://placehold.co/40x40/2a2a4e/e0e0ff?text=P';
 
   return (
     <header className={styles.header}>
       <div className={styles.userInfo}>
         {user && userProfile && (
           <>
+            <img src={photoURL} alt="Profile" className={styles.profileImage} />
             <span className={styles.welcomeText}>
               Welcome, 
               <button onClick={() => onViewProfile(userProfile.uid)} className={styles.displayNameButton}>

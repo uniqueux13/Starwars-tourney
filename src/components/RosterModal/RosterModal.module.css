@@ -76,6 +76,19 @@
   color: #e0e0ff;
 }
 
+.playerInfo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.playerImage {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
 .playerNameButton {
     background: none;
     border: none;

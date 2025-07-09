@@ -21,8 +21,7 @@ import Login from "./components/Login/Login";
 import ProfileSetup from "./components/ProfileSetup/ProfileSetup";
 import Dashboard from "./components/Dashboard/Dashboard";
 
-// --- LAZY-LOADED COMPONENTS ---
-// These components will be code-split into separate chunks and loaded on demand.
+// LAZY-LOADED COMPONENTS
 const TournamentBracket = React.lazy(() => import("./components/TournamentBracket/TournamentBracket"));
 const WinnerDisplay = React.lazy(() => import("./components/WinnerDisplay/WinnerDisplay"));
 const TournamentManagement = React.lazy(() => import("./components/TournamentManagement/TournamentManagement"));
@@ -54,7 +53,7 @@ const isFirebaseConfigValid =
     firebaseConfig.messagingSenderId &&
     firebaseConfig.appId;
 
-type AppView = 'dashboard' | 'profile' | 'tournament';
+type AppView = 'dashboard' | 'profile';
 
 // --- MAIN APP COMPONENT ---
 export default function App() {
@@ -71,7 +70,7 @@ export default function App() {
 
 
   // Custom Hooks
-  const { userProfile, isLoadingProfile, createUserProfile } = useUserProfile(user, db);
+  const { userProfile, isLoadingProfile, isUploading, createUserProfile, saveProfilePicture } = useUserProfile(user, db);
   const {
     activeTournament,
     openTournaments,
@@ -116,7 +115,7 @@ export default function App() {
   }, []);
 
   // --- AUTHENTICATION HANDLERS ---
-  const handleLogin = async () => {
+  const handleGoogleLogin = async () => {
     if (!auth) return;
     setAuthError(null);
     const provider = new GoogleAuthProvider();
@@ -170,6 +169,7 @@ export default function App() {
             alert("Could not find this user's profile.");
         }
     } else {
+        setViewedProfile(null);
         setCurrentView(view);
     }
   };
@@ -185,7 +185,7 @@ export default function App() {
     if (!user) {
       return (
         <Login 
-          onGoogleLogin={handleLogin}
+          onGoogleLogin={handleGoogleLogin}
           onEmailLogin={handleEmailLogin}
           onEmailSignUp={handleEmailSignUp}
           authError={authError}
@@ -198,7 +198,15 @@ export default function App() {
     }
 
     if (currentView === 'profile' && viewedProfile) {
-        return <ProfilePage profile={viewedProfile} onBack={() => setCurrentView('dashboard')} />;
+        return (
+            <ProfilePage 
+                profile={viewedProfile} 
+                isCurrentUser={viewedProfile.uid === user.uid}
+                onBack={() => handleNavigate('dashboard')}
+                onSaveProfilePicture={saveProfilePicture}
+                isUploading={isUploading}
+            />
+        );
     }
 
     if (activeTournament) {
@@ -232,6 +240,8 @@ export default function App() {
           <TournamentBracket
             matches={activeTournament.matches}
             onSetWinner={setWinner}
+            organizerId={activeTournament.organizerId}
+            currentUserId={user.uid}
           />
           <div className={styles.leaveButtonContainer}>
               <button onClick={leaveTournament} className={styles.leaveButton}>

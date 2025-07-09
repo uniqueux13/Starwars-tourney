@@ -7,6 +7,15 @@
     border-bottom: 2px solid #4a4a88;
     padding-bottom: 20px;
     position: relative;
+    /* Add padding to the top to make space for user info on mobile */
+    padding-top: 60px; 
+}
+
+/* On larger screens, remove the top padding */
+@media (min-width: 768px) {
+    .header {
+        padding-top: 0;
+    }
 }
 
 .mainTitle {
@@ -26,22 +35,52 @@
 }
 
 .userInfo {
+    /* Change position to work on mobile */
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 10px; /* Position at the top */
+    right: 10px; /* Position to the right */
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px; /* Adjust gap for smaller screens */
     color: #9a9ae0;
+}
+
+/* On larger screens, restore the original gap */
+@media (min-width: 768px) {
+    .userInfo {
+        gap: 15px;
+    }
+}
+
+
+.profileImage {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #6a6aff;
 }
 
 .welcomeText {
     font-size: 0.9rem;
 }
 
-.displayName {
+.displayNameButton {
+    background: none;
+    border: none;
+    padding: 0 4px;
     font-weight: bold;
     color: #e0e0ff;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: all 0.3s ease;
+}
+
+.displayNameButton:hover {
+    color: #feda4a;
+    text-decoration-color: #feda4a;
 }
 
 .logoutButton {

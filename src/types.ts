@@ -3,8 +3,8 @@
 export interface Player {
   id: string;
   name: string;
-  // Added to associate player with a user account
-  userId?: string; 
+  userId?: string;
+  photoURL?: string | null; // Add optional photoURL
 }
 
 export interface Match {
