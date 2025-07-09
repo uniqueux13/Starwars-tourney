@@ -4,14 +4,20 @@ import styles from './TournamentList.module.css';
 import { Tournament } from '../../hooks/useTournament';
 import { User } from 'firebase/auth';
 import TournamentDetailsModal from '../TournamentDetailsModal/TournamentDetailsModal';
-import RosterModal from '../RosterModal/RosterModal'; // Import the new RosterModal
+import RosterModal from '../RosterModal/RosterModal';
+import { Team } from '../../hooks/useTeams';
+
+// Type guard to check if a participant is a Team
+function isTeam(participant: any): participant is Team {
+  return (participant as Team).captainId !== undefined;
+}
 
 interface TournamentListProps {
   tournaments: Tournament[];
   currentUser: User;
   onJoinTournament: (tournamentId: string) => Promise<void>;
   onManageTournament: (tournamentId: string) => Promise<void>;
-  onViewProfile: (profileId: string) => void; // Add onViewProfile prop
+  onViewProfile: (profileId: string) => void;
   isJoining: string | null;
 }
 
@@ -20,7 +26,7 @@ const TournamentList: React.FC<TournamentListProps> = ({
   currentUser, 
   onJoinTournament, 
   onManageTournament,
-  onViewProfile, // Destructure the new prop
+  onViewProfile,
   isJoining 
 }) => {
   const [viewingDetails, setViewingDetails] = useState<Tournament | null>(null);
@@ -37,7 +43,6 @@ const TournamentList: React.FC<TournamentListProps> = ({
 
   return (
     <>
-      {/* Conditionally render the modals */}
       {viewingDetails && (
         <TournamentDetailsModal 
           tournament={viewingDetails} 
@@ -55,20 +60,33 @@ const TournamentList: React.FC<TournamentListProps> = ({
       <div className={styles.listContainer}>
         {tournaments.map((tournament) => {
           const isOrganizer = tournament.organizerId === currentUser.uid;
-          const isPlayer = tournament.players.some(p => p.id === currentUser.uid);
+          
+          // --- THE FIX: More robust check for player/team membership ---
+          const isPlayer = tournament.players.some(p => {
+            if (isTeam(p)) {
+              // Check if the user is a member of any team in the tournament
+              return p.members.some(member => member.uid === currentUser.uid);
+            }
+            // Check if the user is an individual player
+            return p.id === currentUser.uid;
+          });
 
           return (
             <div key={tournament.id} className={styles.tournamentCard}>
               <div className={styles.cardHeader}>
-                <h3 className={styles.tournamentName}>{tournament.name}</h3>
-                <span className={styles.organizer}>
-                  Organized by: <button className={styles.organizerButton} onClick={() => onViewProfile(tournament.organizerId)}>{tournament.organizerUsername}</button>
-                </span>
+                <div>
+                  <h3 className={styles.tournamentName}>{tournament.name}</h3>
+                  <span className={styles.organizer}>
+                    Organized by: <button className={styles.organizerButton} onClick={() => onViewProfile(tournament.organizerId)}>{tournament.organizerUsername}</button>
+                  </span>
+                </div>
+                <div className={styles.typeBadge}>{tournament.type}</div>
               </div>
               <div className={styles.cardBody}>
                 <div className={styles.detail}>
-                  <span className={styles.detailLabel}>Players</span>
-                  {/* Make the player count a clickable button to view the roster */}
+                  <span className={styles.detailLabel}>
+                    {tournament.type === '4v4 HvV' ? 'Teams' : 'Players'}
+                  </span>
                   <button className={styles.rosterButton} onClick={() => setViewingRoster(tournament)}>
                     {tournament.players.length}
                   </button>

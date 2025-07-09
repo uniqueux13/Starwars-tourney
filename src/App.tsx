@@ -26,11 +26,13 @@ const TournamentBracket = React.lazy(() => import("./components/TournamentBracke
 const WinnerDisplay = React.lazy(() => import("./components/WinnerDisplay/WinnerDisplay"));
 const TournamentManagement = React.lazy(() => import("./components/TournamentManagement/TournamentManagement"));
 const ProfilePage = React.lazy(() => import("./components/ProfilePage/ProfilePage"));
+const TeamManagement = React.lazy(() => import("./components/TeamManagement/TeamManagement"));
 
 
 // Hook Imports
 import { useInviteHandler } from "./hooks/useInviteHandler";
 import { useUserProfile, UserProfile } from "./hooks/useUserProfile";
+import { useTeams } from "./hooks/useTeams";
 
 // --- STYLES ---
 import styles from "./app.module.css";
@@ -91,6 +93,15 @@ export default function App() {
     setWinner,
     leaveTournament
   } = useInviteHandler(user, userProfile, db);
+  
+  const {
+    myTeam,
+    isLoadingTeam,
+    invitePlayerToTeam,
+    removeMemberFromTeam,
+    leaveOrDisbandTeam,
+    searchUsers
+  } = useTeams(user, userProfile, db, activeTournament);
 
   // --- FIREBASE SETUP ---
   useEffect(() => {
@@ -175,7 +186,7 @@ export default function App() {
   };
 
   // --- RENDER LOGIC ---
-  const isLoading = isLoadingAuth || isLoadingProfile || isLoadingTournament;
+  const isLoading = isLoadingAuth || isLoadingProfile || isLoadingTournament || isLoadingTeam;
 
   const renderContent = () => {
     if (isLoading) {
@@ -211,6 +222,20 @@ export default function App() {
 
     if (activeTournament) {
       const isOrganizer = activeTournament.organizerId === user.uid;
+
+      if (activeTournament.type === '4v4 HvV' && myTeam) {
+        return (
+            <TeamManagement 
+                team={myTeam}
+                onSearchUsers={searchUsers}
+                onInvitePlayer={invitePlayerToTeam}
+                onRemoveMember={removeMemberFromTeam}
+                onLeaveTeam={leaveOrDisbandTeam}
+                isCaptain={myTeam.captainId === user.uid}
+                onViewProfile={(id) => handleNavigate('profile', id)} // Pass the function here
+            />
+        );
+      }
 
       if (isOrganizer && activeTournament.status === 'setup') {
         return (

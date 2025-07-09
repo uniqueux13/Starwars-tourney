@@ -1,7 +1,7 @@
 // src/hooks/useUserProfile.ts
 import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
-import { Firestore, doc, getDoc, writeBatch, updateDoc } from 'firebase/firestore';
+import { Firestore, doc, getDoc, writeBatch, updateDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Define the structure of a user's profile, now with photoURL
@@ -10,7 +10,7 @@ export interface UserProfile {
   username: string;
   displayName: string | null;
   email: string | null;
-  photoURL: string | null; // Added photoURL
+  photoURL: string | null;
   createdAt: Date;
   stats: {
     tournamentsHosted: number;
@@ -24,28 +24,39 @@ export const useUserProfile = (user: User | null, db: Firestore | null) => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Effect to load the user's profile from Firestore
+  // Effect to listen for real-time updates on the user's profile
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user || !db) {
-        setUserProfile(null);
-        setIsLoadingProfile(false);
-        return;
-      }
+    let unsubscribe: Unsubscribe | undefined;
 
+    if (user && db) {
       setIsLoadingProfile(true);
       const profileDocRef = doc(db, 'users', user.uid);
-      const profileDocSnap = await getDoc(profileDocRef);
+      
+      // Set up the real-time listener
+      unsubscribe = onSnapshot(profileDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setUserProfile(docSnap.data() as UserProfile);
+        } else {
+          setUserProfile(null);
+        }
+        setIsLoadingProfile(false);
+      }, (error) => {
+        console.error("Error listening to user profile:", error);
+        setIsLoadingProfile(false);
+      });
 
-      if (profileDocSnap.exists()) {
-        setUserProfile(profileDocSnap.data() as UserProfile);
-      } else {
-        setUserProfile(null);
-      }
+    } else {
+      // No user, so no profile to load.
+      setUserProfile(null);
       setIsLoadingProfile(false);
+    }
+    
+    // Cleanup function to unsubscribe from the listener when the component unmounts or user changes
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
-
-    fetchUserProfile();
   }, [user, db]);
 
   const createUserProfile = async (username: string): Promise<{ success: boolean; message: string }> => {
@@ -74,7 +85,7 @@ export const useUserProfile = (user: User | null, db: Firestore | null) => {
         username: sanitizedUsername,
         displayName: user.displayName,
         email: user.email,
-        photoURL: user.photoURL, // Save the photoURL on creation
+        photoURL: user.photoURL,
         createdAt: new Date(),
         stats: {
           tournamentsHosted: 0,
@@ -88,7 +99,7 @@ export const useUserProfile = (user: User | null, db: Firestore | null) => {
 
       await batch.commit();
       
-      setUserProfile(newProfile);
+      // No need to call setUserProfile here, the onSnapshot listener will handle it automatically.
       return { success: true, message: 'Profile created successfully!' };
     } catch (error) {
       console.error("Error creating user profile:", error);
@@ -106,17 +117,13 @@ export const useUserProfile = (user: User | null, db: Firestore | null) => {
       const filePath = `profile-pictures/${user.uid}.jpg`;
       const storageRef = ref(storage, filePath);
 
-      // Upload the file
       const snapshot = await uploadBytes(storageRef, image);
-      // Get the public URL
       const downloadURL = await getDownloadURL(snapshot.ref);
 
-      // Save the URL to the user's profile document
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, { photoURL: downloadURL });
 
-      // Update the local state to reflect the change immediately
-      setUserProfile(prev => prev ? { ...prev, photoURL: downloadURL } : null);
+      // No need to call setUserProfile here, the onSnapshot listener will handle it automatically.
 
     } catch (error) {
       console.error("Error uploading profile picture:", error);

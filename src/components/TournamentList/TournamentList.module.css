@@ -24,19 +24,52 @@
 }
 
 .cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   border-bottom: 1px solid #3a3a6a;
   padding-bottom: 15px;
 }
 
 .tournamentName {
   color: #feda4a;
-  margin: 0;
+  margin: 0 0 5px 0;
   font-size: 1.5rem;
 }
 
 .organizer {
   color: #9a9ae0;
   font-size: 0.9rem;
+}
+
+.organizerButton {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: inherit;
+    font-family: inherit;
+    color: #c0c0ff;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.organizerButton:hover {
+    color: #feda4a;
+    text-decoration-color: #feda4a;
+}
+
+.typeBadge {
+    background-color: #4a4a88;
+    color: #e0e0ff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .cardBody {
@@ -63,11 +96,31 @@
     font-weight: normal;
 }
 
+.rosterButton {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #e0e0ff;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.rosterButton:hover {
+    color: #feda4a;
+    text-decoration-color: #feda4a;
+}
+
+
 .cardFooter {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px; /* This is the key property that adds spacing */
+  gap: 10px;
   padding-top: 10px;
   flex-wrap: wrap;
 }

@@ -18,12 +18,15 @@ const Login: React.FC<LoginProps> = ({ onGoogleLogin, onEmailLogin, onEmailSignU
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    if (isLoginView) {
-      await onEmailLogin(email, password);
-    } else {
-      await onEmailSignUp(email, password);
+    try {
+      if (isLoginView) {
+        await onEmailLogin(email, password);
+      } else {
+        await onEmailSignUp(email, password);
+      }
+    } finally {
+        setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
@@ -65,7 +68,7 @@ const Login: React.FC<LoginProps> = ({ onGoogleLogin, onEmailLogin, onEmailSignU
 
       {/* Google Sign-In Button */}
       <button onClick={onGoogleLogin} className={styles.googleButton}>
-        Google Sign In
+        Sign In with Google
       </button>
     </div>
   );

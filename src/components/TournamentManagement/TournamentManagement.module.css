@@ -30,11 +30,10 @@
   letter-spacing: 2px;
 }
 
-/* Tab Navigation Styles */
 .navTabs {
     display: flex;
     border-bottom: 1px solid #3a3a6a;
-    gap: 10px; /* This is the fix to add space between the buttons */
+    gap: 10px;
 }
 
 .navButton {
@@ -75,7 +74,6 @@
   padding-bottom: 8px;
 }
 
-/* Invite Section Styles */
 .inviteSection {
     text-align: center;
 }
@@ -119,8 +117,6 @@
     box-sizing: border-box;
 }
 
-
-/* Player List Styles */
 .playerList {
   list-style: none;
   padding: 0;
@@ -138,6 +134,48 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.playerInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.playerImage, .teamIndicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.teamIndicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: #fff;
+    font-size: 1.2rem;
+}
+
+.playerNameButton {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #e0e0ff;
+    font-size: 1rem;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.playerNameButton:hover {
+    color: #feda4a;
+    text-decoration-color: #feda4a;
 }
 
 .kickButton {
@@ -167,7 +205,6 @@
   text-align: center;
 }
 
-/* Actions Section Styles */
 .actionsSection {
   text-align: center;
   border-top: 1px solid #3a3a6a;

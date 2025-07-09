@@ -13,16 +13,27 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onCreateProfile }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username.trim()) {
+      setError('Username cannot be empty.');
+      return;
+    }
+    
     setIsSubmitting(true);
     setError('');
 
-    const result = await onCreateProfile(username);
-    
-    if (!result.success) {
-      setError(result.message);
+    try {
+      const result = await onCreateProfile(username);
+      if (!result.success) {
+        setError(result.message);
+      }
+      // On success, the parent component will handle unmounting this component.
+    } catch (err) {
+      console.error("An unexpected error occurred in profile setup:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      // This ensures the submitting state is always reset, even if an error occurs.
       setIsSubmitting(false);
     }
-    // On success, the parent component will detect the profile change and unmount this component.
   };
 
   return (

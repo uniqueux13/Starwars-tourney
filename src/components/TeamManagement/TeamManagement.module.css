@@ -1,0 +1,143 @@
+/* src/components/TeamManagement/TeamManagement.module.css */
+.container {
+  width: 100%;
+  max-width: 800px;
+  background-color: #1a1a2e;
+  border: 1px solid #3a3a6a;
+  border-radius: 8px;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.header {
+  text-align: center;
+}
+
+.teamName {
+  color: #feda4a;
+  font-size: 2rem;
+  margin: 0 0 5px 0;
+}
+
+.header p {
+  color: #9a9ae0;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.section {
+  border-top: 1px solid #3a3a6a;
+  padding-top: 20px;
+}
+
+.sectionTitle {
+  color: #9a9ae0;
+  font-size: 1.1rem;
+  margin: 0 0 15px 0;
+}
+
+.memberList, .resultsList {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memberTag, .resultItem {
+  background-color: #2a2a4e;
+  padding: 10px 15px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.memberInfo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.memberImage {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.removeButton, .inviteButton {
+  font-family: 'Orbitron', sans-serif;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.8rem;
+}
+
+.removeButton {
+  background-color: transparent;
+  border: 1px solid #ff4a4a;
+  color: #ff4a4a;
+}
+
+.inviteButton {
+  background-color: #2a4a2a;
+  border: 1px solid #4a8a4a;
+  color: #aaffaa;
+}
+
+.removeButton:hover {
+  background-color: #ff4a4a;
+  color: #0a0a12;
+}
+
+.inviteButton:hover {
+    filter: brightness(1.3);
+}
+
+.searchForm {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.searchInput {
+  flex-grow: 1;
+  background-color: #0a0a12;
+  border: 1px solid #4a4a88;
+  color: #e0e0ff;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.searchButton {
+  font-family: 'Orbitron', sans-serif;
+  background-color: #3a3a6a;
+  color: #e0e0ff;
+  border: 1px solid #6a6aff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.footer {
+    border-top: 1px solid #3a3a6a;
+    padding-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.leaveButton {
+    font-family: 'Orbitron', sans-serif;
+    background-color: #682020;
+    color: #ffc0c0;
+    border: 1px solid #a33838;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}

@@ -5,16 +5,22 @@ import { Tournament } from '../../hooks/useTournament';
 import { Player } from '../../types';
 import { User } from 'firebase/auth';
 import TournamentSettings, { TournamentRules } from '../TournamentSettings/TournamentSettings';
+import { Team } from '../../hooks/useTeams';
+
+// Type guard to check if a participant is a Team
+function isTeam(participant: any): participant is Team {
+  return (participant as Team).captainId !== undefined;
+}
 
 interface TournamentManagementProps {
   tournament: Tournament;
   currentUser: User;
   onStartTournament: () => Promise<void>;
   onDeleteTournament: () => Promise<void>;
-  onKickPlayer: (playerToKick: Player) => Promise<void>;
+  onKickPlayer: (playerToKick: Player | Team) => Promise<void>; // Update prop type
   onGenerateInvite: () => Promise<string | null>;
   onSaveSettings: (settings: TournamentRules) => Promise<void>;
-  onViewProfile: (profileId: string) => void; // Add the new prop
+  onViewProfile: (profileId: string) => void;
   isStarting: boolean;
   isDeleting: boolean;
   isKickingPlayerId: string | null;
@@ -29,7 +35,7 @@ const TournamentManagement: React.FC<TournamentManagementProps> = ({
   onKickPlayer,
   onGenerateInvite,
   onSaveSettings,
-  onViewProfile, // Destructure the new prop
+  onViewProfile,
   isStarting,
   isDeleting,
   isKickingPlayerId,
@@ -105,26 +111,39 @@ const TournamentManagement: React.FC<TournamentManagementProps> = ({
             </div>
 
             <div className={styles.playerListSection}>
-                <h3 className={styles.sectionTitle}>Registered Players ({tournament.players.length})</h3>
+                <h3 className={styles.sectionTitle}>Registered {tournament.type === '4v4 HvV' ? 'Teams' : 'Players'} ({tournament.players.length})</h3>
                 {tournament.players.length > 0 ? (
                 <ul className={styles.playerList}>
-                    {tournament.players.map((player: Player) => (
-                    <li key={player.id} className={styles.playerTag}>
-                        {/* Make the player name a clickable button */}
-                        <button className={styles.playerNameButton} onClick={() => onViewProfile(player.id)}>
-                            {player.name}
-                        </button>
-                        {player.id !== currentUser.uid && (
-                            <button 
-                                className={styles.kickButton}
-                                onClick={() => onKickPlayer(player)}
-                                disabled={!!isKickingPlayerId}
-                            >
-                                {isKickingPlayerId === player.id ? '...' : 'Kick'}
-                            </button>
-                        )}
-                    </li>
-                    ))}
+                    {tournament.players.map((participant) => {
+                      const id = participant.id;
+                      const name = participant.name;
+                      const photoURL = !isTeam(participant) ? participant.photoURL : null;
+                      const teamColor = isTeam(participant) ? participant.color : undefined;
+                      
+                      return (
+                        <li key={id} className={styles.playerTag}>
+                            <div className={styles.playerInfo}>
+                                {isTeam(participant) ? (
+                                    <div className={styles.teamIndicator} style={{backgroundColor: teamColor}}>T</div>
+                                ) : (
+                                    <img src={photoURL || `https://placehold.co/32x32/2a2a4e/e0e0ff?text=${name.charAt(0)}`} alt={name} className={styles.playerImage} />
+                                )}
+                                <button className={styles.playerNameButton} onClick={() => onViewProfile(id)}>
+                                    {name}
+                                </button>
+                            </div>
+                            {id !== currentUser.uid && (
+                                <button 
+                                    className={styles.kickButton}
+                                    onClick={() => onKickPlayer(participant)}
+                                    disabled={!!isKickingPlayerId}
+                                >
+                                    {isKickingPlayerId === id ? '...' : 'Kick'}
+                                </button>
+                            )}
+                        </li>
+                      )
+                    })}
                 </ul>
                 ) : (
                 <p className={styles.noPlayersText}>No players have registered yet.</p>

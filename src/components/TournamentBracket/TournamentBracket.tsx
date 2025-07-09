@@ -1,6 +1,7 @@
 // src/components/TournamentBracket/TournamentBracket.tsx
 import React, { useMemo } from 'react';
 import { Match, Player } from '../../types';
+import { Team } from '../../hooks/useTeams'; // Import the Team type
 import MatchCard from '../MatchCard/MatchCard';
 import styles from './TournamentBracket.module.css';
 
@@ -8,7 +9,7 @@ interface TournamentBracketProps {
   matches: Match[];
   organizerId: string;
   currentUserId: string;
-  onSetWinner: (matchId: number, winner: Player) => void;
+  onSetWinner: (matchId: number, winner: Player | Team) => void; // Update to accept Player or Team
 }
 
 const TournamentBracket: React.FC<TournamentBracketProps> = ({ matches, organizerId, currentUserId, onSetWinner }) => {
@@ -23,8 +24,12 @@ const TournamentBracket: React.FC<TournamentBracketProps> = ({ matches, organize
     );
   }, [matches]);
 
-  if (!rounds.length) {
-    return null;
+  if (!rounds || rounds.length === 0) {
+    return (
+        <div className={styles.noMatches}>
+            <p>The bracket has not been generated yet.</p>
+        </div>
+    );
   }
 
   return (

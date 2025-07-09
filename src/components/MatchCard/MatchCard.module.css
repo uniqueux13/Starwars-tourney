@@ -9,6 +9,7 @@
   flex-direction: column;
   gap: 10px;
   box-shadow: 0 0 10px rgba(74, 74, 136, 0.3);
+  min-width: 280px;
 }
 
 .playerSlot {
@@ -24,17 +25,31 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-grow: 1;
+    overflow: hidden; /* Prevents long names from breaking layout */
 }
 
-.playerImage {
+.playerImage, .teamIndicator {
     width: 32px;
     height: 32px;
     border-radius: 50%;
     object-fit: cover;
+    flex-shrink: 0; /* Prevents the image from shrinking */
+}
+
+.teamIndicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: #fff;
+    font-size: 1.2rem;
 }
 
 .playerName {
-  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .winner {
@@ -69,6 +84,7 @@
   border-radius: 4px;
   font-family: 'Exo 2', sans-serif;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .winButton:hover {
