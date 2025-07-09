@@ -5,7 +5,6 @@ import { User } from 'firebase/auth';
 import { 
   Firestore, 
   doc, 
-  setDoc, 
   getDoc,
   updateDoc,
   arrayUnion,
@@ -16,7 +15,9 @@ import {
   where,
   getDocs,
   deleteDoc,
-  increment // Import the increment utility
+  increment,
+  onSnapshot, // Import the real-time listener
+  Unsubscribe
 } from 'firebase/firestore';
 import { UserProfile } from './useUserProfile';
 import { TournamentRules } from '../components/TournamentSettings/TournamentSettings';
@@ -39,13 +40,100 @@ export interface Tournament {
 export const useTournament = (user: User | null, userProfile: UserProfile | null, db: Firestore | null, inviteToken: string | null) => {
   const [activeTournament, setActiveTournament] = useState<Tournament | null>(null);
   const [openTournaments, setOpenTournaments] = useState<Tournament[]>([]);
-  const [myPlayers, setMyPlayers] = useState<Player[]>([]); // Re-added this state
+  const [myPlayers, setMyPlayers] = useState<Player[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isKickingPlayerId, setIsKickingPlayerId] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  // --- REAL-TIME LISTENERS ---
+  useEffect(() => {
+    if (!db) return;
+
+    // Listener for the list of open tournaments
+    const tournamentsCol = collection(db, 'tournaments');
+    const q = query(tournamentsCol, where("status", "==", "setup"));
+    const unsubscribeOpenTournaments = onSnapshot(q, (querySnapshot) => {
+      const tournaments: Tournament[] = [];
+      querySnapshot.forEach((doc) => {
+        tournaments.push({ id: doc.id, ...doc.data() } as Tournament);
+      });
+      setOpenTournaments(tournaments);
+    });
+
+    // This cleanup function will run when the component unmounts
+    return () => {
+      unsubscribeOpenTournaments();
+    };
+  }, [db]);
+
+
+  useEffect(() => {
+    // This effect manages the active tournament and user-specific data
+    let unsubscribeUser: Unsubscribe | undefined;
+    let unsubscribeActiveTournament: Unsubscribe | undefined;
+
+    const setupListeners = async () => {
+        if (!user || !db || !userProfile) {
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+
+        // Listener for the user's own document
+        const userDocRef = doc(db, 'users', user.uid);
+        unsubscribeUser = onSnapshot(userDocRef, async (userDocSnap) => {
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                setMyPlayers(userData.myPlayers || []);
+
+                const activeId = userData.activeTournamentId;
+
+                // If the active tournament changes, update the listener
+                if (activeId) {
+                    const tournamentDocRef = doc(db, 'tournaments', activeId);
+                    
+                    // Unsubscribe from the old tournament listener if it exists
+                    if (unsubscribeActiveTournament) unsubscribeActiveTournament();
+
+                    unsubscribeActiveTournament = onSnapshot(tournamentDocRef, (tournamentDocSnap) => {
+                        if (tournamentDocSnap.exists()) {
+                            setActiveTournament({ id: activeId, ...tournamentDocSnap.data() } as Tournament);
+                        } else {
+                            // The tournament was deleted, so clear the active state
+                            setActiveTournament(null);
+                        }
+                    });
+                } else {
+                    // No active tournament, clear state and any existing listener
+                    if (unsubscribeActiveTournament) unsubscribeActiveTournament();
+                    setActiveTournament(null);
+                }
+            }
+        });
+
+        // Handle initial invite token check after main listeners are set up
+        if (inviteToken) {
+            await joinTournamentByInvite(inviteToken);
+        }
+
+        setIsLoading(false);
+    };
+
+    setupListeners();
+
+    // Cleanup function for all listeners in this effect
+    return () => {
+      if (unsubscribeUser) unsubscribeUser();
+      if (unsubscribeActiveTournament) unsubscribeActiveTournament();
+    };
+  }, [user, db, userProfile, inviteToken]);
+
+
+  // --- MODIFIED FUNCTIONS (Simpler due to real-time listeners) ---
 
   const joinTournament = useCallback(async (id: string) => {
     if (!db || !user || !userProfile) return;
@@ -54,7 +142,7 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
       const tournamentDocRef = doc(db, 'tournaments', id);
       const playerToAdd: Player = { id: user.uid, name: userProfile.username, userId: user.uid };
       await updateDoc(tournamentDocRef, { players: arrayUnion(playerToAdd) });
-      await fetchOpenTournaments();
+      // No need to manually refresh, the onSnapshot listener will do it.
     } catch (error) {
       console.error("Error joining tournament:", error);
     } finally {
@@ -68,7 +156,7 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
     try {
         const tournamentsCol = collection(db, 'tournaments');
         const q = query(tournamentsCol, where("inviteToken", "==", token), where("status", "==", "setup"));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(q); // getDocs is fine here, it's a one-time check
         if (querySnapshot.empty) {
             alert("This invitation is invalid or has expired.");
             return;
@@ -82,92 +170,33 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
     }
   }, [db, user, userProfile, joinTournament]);
 
-  const fetchOpenTournaments = useCallback(async () => {
-    if (!db) return;
-    const tournamentsCol = collection(db, 'tournaments');
-    const q = query(tournamentsCol, where("status", "==", "setup"));
-    const querySnapshot = await getDocs(q);
-    const tournaments: Tournament[] = [];
-    querySnapshot.forEach((doc) => {
-      tournaments.push({ id: doc.id, ...doc.data() } as Tournament);
-    });
-    setOpenTournaments(tournaments);
-  }, [db]);
 
-  useEffect(() => {
-    const loadUserData = async () => {
-      setIsLoading(true);
-      try {
-        if (!user || !db || !userProfile) return;
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        await fetchOpenTournaments();
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          setMyPlayers(userData.myPlayers || []); // Re-added this line
-          if (userData.activeTournamentId) {
-            const activeId = userData.activeTournamentId;
-            const tournamentDocRef = doc(db, 'tournaments', activeId);
-            const tournamentDocSnap = await getDoc(tournamentDocRef);
-            if (tournamentDocSnap.exists()) {
-              setActiveTournament({ id: activeId, ...tournamentDocSnap.data() } as Tournament);
-            }
-          } else {
-            setActiveTournament(null);
-          }
-        }
-        if (inviteToken) {
-            await joinTournamentByInvite(inviteToken);
-        }
-      } catch (error) {
-        console.error("Error loading user data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadUserData();
-  }, [user, db, userProfile, fetchOpenTournaments, inviteToken, joinTournamentByInvite]);
-
-  // --- Re-added "My Players" List Logic ---
-  const addPlayerToMyList = async (name: string) => {
+  const manageTournament = async (id: string) => {
     if (!db || !user) return;
-    if (myPlayers.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
-      alert("This player is already in your list.");
-      return;
-    }
-    const newPlayer: Player = { id: crypto.randomUUID(), name };
+    const userDocRef = doc(db, 'users', user.uid);
+    // Just update the user's active ID. The listener will do the rest.
+    await updateDoc(userDocRef, { activeTournamentId: id });
+  };
+
+  const leaveTournament = async () => {
+    if (!db || !user || !activeTournament) return;
     
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, { myPlayers: arrayUnion(newPlayer) });
-      setMyPlayers((prev) => [...prev, newPlayer]);
-    } catch (error) {
-      console.error("Error adding player to your list:", error);
+    // If user is a player in setup, remove them from the roster
+    if (activeTournament.status === 'setup' && activeTournament.players.some(p => p.id === user.uid)) {
+        const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
+        const playerToRemove = activeTournament.players.find(p => p.id === user.uid);
+        if (playerToRemove) {
+            await updateDoc(tournamentDocRef, { players: arrayRemove(playerToRemove) });
+        }
     }
+
+    // Clear the active tournament link from the user's profile. The listener will handle the state change.
+    const userDocRef = doc(db, 'users', user.uid);
+    await updateDoc(userDocRef, { activeTournamentId: null });
   };
 
-  const removePlayerFromMyList = async (playerToRemove: Player) => {
-    if (!db || !user) return;
-    try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, { myPlayers: arrayRemove(playerToRemove) });
-      setMyPlayers((prev) => prev.filter((p) => p.id !== playerToRemove.id));
-    } catch (error) {
-      console.error("Error removing player from your list:", error);
-    }
-  };
 
-  const addPlayerFromMyListToTournament = (player: Player) => {
-    if (activeTournament?.players.some((p) => p.name.toLowerCase() === player.name.toLowerCase())) {
-      alert("This player is already in the tournament.");
-      return;
-    }
-    // This function should now update the activeTournament state
-    setActiveTournament(prev => {
-        if (!prev) return null;
-        return { ...prev, players: [...prev.players, player] };
-    });
-  };
+  // --- UNCHANGED FUNCTIONS (Logic remains the same) ---
 
   const saveTournamentSettings = async (settings: TournamentRules) => {
     if (!db || !activeTournament) return;
@@ -175,7 +204,6 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
     try {
       const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
       await updateDoc(tournamentDocRef, { rules: settings });
-      setActiveTournament(prev => prev ? { ...prev, rules: settings } : null);
     } catch (error) {
       console.error("Error saving settings:", error);
     } finally {
@@ -189,21 +217,19 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
         const token = crypto.randomUUID().slice(0, 8);
         const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
         await updateDoc(tournamentDocRef, { inviteToken: token });
-        setActiveTournament(prev => prev ? { ...prev, inviteToken: token } : null);
         return `${window.location.origin}?invite=${token}`;
     } catch (error) {
         console.error("Error generating invite link:", error);
         return null;
     }
   };
-
+  
   const kickPlayer = async (playerToKick: Player) => {
     if (!db || !activeTournament || activeTournament.status !== 'setup') return;
     setIsKickingPlayerId(playerToKick.id);
     try {
       const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
       await updateDoc(tournamentDocRef, { players: arrayRemove(playerToKick) });
-      setActiveTournament(prev => prev ? { ...prev, players: prev.players.filter(p => p.id !== playerToKick.id) } : null);
       const kickedUserDocRef = doc(db, 'users', playerToKick.id);
       const kickedUserDocSnap = await getDoc(kickedUserDocRef);
       if (kickedUserDocSnap.exists() && kickedUserDocSnap.data().activeTournamentId === activeTournament.id) {
@@ -267,7 +293,6 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
         batch.update(playerDocRef, { activeTournamentId: tournamentId });
       });
       await batch.commit();
-      setActiveTournament(prev => prev ? { ...prev, matches: finalMatches, isBracketGenerated: true, status: 'in_progress' } : null);
     } catch (error) {
       console.error("Error starting tournament:", error);
     } finally {
@@ -285,25 +310,10 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
       batch.delete(tournamentDocRef);
       batch.update(userDocRef, { activeTournamentId: null });
       await batch.commit();
-      setActiveTournament(null);
-      await fetchOpenTournaments();
     } catch (error) {
       console.error("Error deleting tournament:", error);
     } finally {
       setIsDeleting(false);
-    }
-  };
-
-  const manageTournament = async (id: string) => {
-    if (!db || !user) return;
-    const tournamentDocRef = doc(db, 'tournaments', id);
-    const userDocRef = doc(db, 'users', user.uid);
-    const batch = writeBatch(db);
-    batch.update(userDocRef, { activeTournamentId: id });
-    await batch.commit();
-    const tournamentDocSnap = await getDoc(tournamentDocRef);
-    if (tournamentDocSnap.exists()) {
-      setActiveTournament({ id, ...tournamentDocSnap.data() } as Tournament);
     }
   };
 
@@ -332,7 +342,6 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
       batch.set(userDocRef, { activeTournamentId: newTournamentId }, { merge: true });
       batch.update(userDocRef, { 'stats.tournamentsHosted': increment(1) });
       await batch.commit();
-      setActiveTournament({ id: newTournamentId, ...newTournamentData });
     } catch (error) {
       console.error("Error creating tournament:", error);
     } finally {
@@ -373,7 +382,6 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
         nextMatches[nextMatchIndex].players[playerSlot] = winner;
       }
     }
-    setActiveTournament(prev => prev ? { ...prev, matches: nextMatches, tournamentWinner: finalWinner, status: newStatus } : null);
     const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
     await updateDoc(tournamentDocRef, {
         matches: nextMatches,
@@ -382,25 +390,10 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
     });
   };
 
-  const leaveTournament = async () => {
-    if (!db || !user || !activeTournament) return;
-    if (activeTournament.status === 'setup' && activeTournament.players.some(p => p.id === user.uid)) {
-        const tournamentDocRef = doc(db, 'tournaments', activeTournament.id);
-        const playerToRemove = activeTournament.players.find(p => p.id === user.uid);
-        if (playerToRemove) {
-            await updateDoc(tournamentDocRef, { players: arrayRemove(playerToRemove) });
-        }
-    }
-    const userDocRef = doc(db, 'users', user.uid);
-    await updateDoc(userDocRef, { activeTournamentId: null });
-    setActiveTournament(null);
-    await fetchOpenTournaments();
-  };
-
   return {
     activeTournament,
     openTournaments,
-    myPlayers, // Re-added this
+    myPlayers,
     isLoading,
     isJoining,
     isStarting,
@@ -415,9 +408,6 @@ export const useTournament = (user: User | null, userProfile: UserProfile | null
     manageTournament,
     generateInviteLink,
     saveTournamentSettings,
-    addPlayerToMyList, // Re-added this
-    removePlayerFromMyList, // Re-added this
-    addPlayerFromMyListToTournament, // Re-added this
     setWinner,
     leaveTournament
   };
